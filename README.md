@@ -2,6 +2,8 @@
 
 Landing page pencatatan kas & donasi **Jagad Shalawat** — mobile-first, bertema emerald-gold dengan ornamen islami. Donor memilih kanal pembayaran (transfer bank, e-money, virtual account), mencatat donasi, dan pengurus memverifikasinya lewat panel admin.
 
+> 🚀 **Live**: [kasjagad.vercel.app](https://kasjagad.vercel.app/)
+
 ## Fitur
 
 - Landing page mobile-first (Rekening → Donasi → Riwayat)
@@ -44,6 +46,20 @@ npm run dev          # http://localhost:3000
 - Halaman publik: `/`
 - Panel pengurus: `/admin`
 
+## Deploy ke Vercel
+
+1. Push repo ke GitHub, lalu import di Vercel.
+2. Set **Environment Variables** di Vercel (Settings → Environment Variables):
+
+   | Variable        | Keterangan                          |
+   | --------------- | ----------------------------------- |
+   | `DATABASE_URL`  | Connection string pooled dari Neon  |
+   | `ADMIN_PASSWORD` | Password login panel admin         |
+   | `SESSION_SECRET` | Random string, minimal 32 karakter  |
+
+   `SESSION_SECRET` **harus ≥ 32 karakter** — nilai yang lebih pendek akan menggagalkan build (`lib/auth.ts` melempar error saat build).
+3. Deploy. Build akan membaca env vars, tidak mengandalkan file `.env` lokal.
+
 ## Script
 
 | Script              | Fungsi                              |
@@ -58,3 +74,4 @@ npm run dev          # http://localhost:3000
 
 - Donasi bersifat **pencatatan manual** (bukan charge otomatis). Status default `pending`, diverifikasi pengurus.
 - Upload bukti disimpan ke folder `uploads/` (lokal). Saat deploy ke serverless tanpa disk persisten (mis. Vercel), migrasikan ke object storage (Cloudinary/S3).
+- Siapa pun dapat melihat riwayat donasi di `/` secara publik; kelola entri lewat panel `/admin`.
