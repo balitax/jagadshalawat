@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# kasjagad
 
-## Getting Started
+Landing page pencatatan kas & donasi **Jagad Shalawat** — mobile-first, bertema emerald-gold dengan ornamen islami. Donor memilih kanal pembayaran (transfer bank, e-money, virtual account), mencatat donasi, dan pengurus memverifikasinya lewat panel admin.
 
-First, run the development server:
+## Fitur
+
+- Landing page mobile-first (Rekening → Donasi → Riwayat)
+- Flow donasi 3 langkah ala payment gateway (Nominal → Metode/Instruksi bayar → Konfirmasi)
+- Pilihan anonim (tampil sebagai "Hamba Allah")
+- Upload bukti transfer
+- Riwayat donasi dalam format tabel
+- Panel admin (`/admin`) untuk verifikasi / edit / hapus / anonimkan entri
+- Background islami (pola bintang-8) + animasi halus
+
+## Stack
+
+- **Next.js 16** (App Router) + TypeScript
+- **Tailwind CSS v4**
+- **Drizzle ORM** + **Neon (Postgres)** via `postgres`
+- **iron-session** untuk sesi admin
+- **lucide-react** untuk ikon
+
+## Menjalankan lokal
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Siapkan `.env` (lihat `.env.example`):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+DATABASE_URL=postgresql://...        # dari Neon (pooled)
+ADMIN_PASSWORD=...                   # password login panel admin
+SESSION_SECRET=...                   # minimal 32 karakter
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Buat tabel & jalankan:
 
-## Learn More
+```bash
+npm run db:push      # membuat tabel dari db/schema.ts
+npm run dev          # http://localhost:3000
+```
 
-To learn more about Next.js, take a look at the following resources:
+- Halaman publik: `/`
+- Panel pengurus: `/admin`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Script
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Script              | Fungsi                              |
+| ------------------- | ----------------------------------- |
+| `npm run dev`       | Dev server                          |
+| `npm run build`     | Build produksi + typecheck          |
+| `npm run lint`      | ESLint                              |
+| `npm run db:push`   | Push skema Drizzle ke database      |
+| `npm run db:generate` | Generate file migrasi             |
 
-## Deploy on Vercel
+## Catatan
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Donasi bersifat **pencatatan manual** (bukan charge otomatis). Status default `pending`, diverifikasi pengurus.
+- Upload bukti disimpan ke folder `uploads/` (lokal). Saat deploy ke serverless tanpa disk persisten (mis. Vercel), migrasikan ke object storage (Cloudinary/S3).
