@@ -1,8 +1,8 @@
-# kasjagad
+# jagadshalawat
 
 Landing page pencatatan kas & donasi **Jagad Shalawat** — mobile-first, bertema emerald-gold dengan ornamen islami. Donor memilih kanal pembayaran (transfer bank, e-money, virtual account), mencatat donasi, dan pengurus memverifikasinya lewat panel admin.
 
-> 🚀 **Live**: [kasjagad.vercel.app](https://kasjagad.vercel.app/)
+> 🚀 **Live**: [jagadshalawat.vercel.app](https://jagadshalawat.vercel.app/)
 
 ## Fitur
 
@@ -45,6 +45,13 @@ npm run dev          # http://localhost:3000
 
 - Halaman publik: `/`
 - Panel pengurus: `/admin`
+
+### Info Login Admin
+
+| Field            | Nilai           |
+| ---------------- | --------------- |
+| URL              | `/admin`        |
+| Password         | `Pengurus adminJS123` |
 
 ## Deploy ke Vercel
 
