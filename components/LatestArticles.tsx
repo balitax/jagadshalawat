@@ -11,6 +11,7 @@ interface ArticleItem {
   title: string;
   slug: string;
   excerpt: string | null;
+  coverUrl: string | null;
   category: "artikel" | "pengumuman";
   author: string | null;
   createdAt: string;
@@ -63,8 +64,20 @@ export function LatestArticles() {
                 key={a.id}
                 className="glass card-lift group flex flex-col rounded-2xl overflow-hidden transition"
               >
+                {/* Cover image */}
+                {a.coverUrl && (
+                  <div className="relative h-40 overflow-hidden">
+                    <img
+                      src={a.coverUrl}
+                      alt={a.title}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-ink/60 to-transparent" />
+                  </div>
+                )}
+
                 {/* Header accent */}
-                <div className="h-1 bg-gradient-to-r from-gold/40 via-gold/20 to-transparent" />
+                {!a.coverUrl && <div className="h-1 bg-gradient-to-r from-gold/40 via-gold/20 to-transparent" />}
 
                 <div className="flex flex-1 flex-col p-6">
                   <div className="flex items-center justify-between">

@@ -240,7 +240,7 @@ export function Hero() {
         </p>
 
         {/* CTAs */}
-        <div className="animate-fade-up delay-4 mt-10 grid w-full max-w-md gap-4 sm:grid-cols-2">
+        <div className="animate-fade-up delay-4 mt-20 grid w-full max-w-md gap-4 sm:grid-cols-2">
           <MagneticButton
             href="/jadwal"
             className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-gold-2 via-gold to-gold-3 px-8 py-4 text-sm font-bold text-ink shadow-xl shadow-gold/25 transition hover:shadow-2xl hover:shadow-gold/35 hover:brightness-110 active:scale-[0.98]"
@@ -267,6 +267,22 @@ export function Hero() {
             <p className="mt-1 text-xs text-parchment-3 sm:text-sm">Jadwal Rutin</p>
           </div>
           <CountUpPercent target={100} />
+        </div>
+
+        {/* Scroll indicator */}
+        <div className="animate-fade-in delay-6 mt-16 flex flex-col items-center gap-2 text-parchment-3 sm:mt-20">
+          <span className="text-xs uppercase tracking-widest">Scroll</span>
+          <div className="animate-bounce">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.5}
+              className="h-5 w-5 text-gold"
+            >
+              <path d="M12 5v14M5 12l7 7 7-7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
         </div>
       </div>
 

@@ -5,6 +5,7 @@ import { UpcomingSchedule } from "@/components/UpcomingSchedule";
 import { LatestArticles } from "@/components/LatestArticles";
 import { PhotoGallery } from "@/components/PhotoGallery";
 import { Footer } from "@/components/Footer";
+import { FloatingApps } from "@/components/FloatingApps";
 
 export default function Page() {
   return (
@@ -18,6 +19,7 @@ export default function Page() {
         <PhotoGallery />
       </main>
       <Footer />
+      <FloatingApps />
     </>
   );
 }

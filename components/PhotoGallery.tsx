@@ -28,6 +28,7 @@ export function PhotoGallery() {
 
   if (loading || photos.length === 0) return null;
 
+  const displayPhotos = photos.slice(0, 8);
   const lightboxPhoto = lightboxIndex !== null ? photos[lightboxIndex] : null;
 
   return (
@@ -41,7 +42,7 @@ export function PhotoGallery() {
         />
 
         <div className="reveal-stagger mx-auto mt-12 grid max-w-6xl grid-cols-2 gap-4 px-5 sm:grid-cols-3 lg:grid-cols-4">
-          {photos.map((p, i) => (
+          {displayPhotos.map((p, i) => (
             <button
               key={p.id}
               onClick={() => setLightboxIndex(i)}
