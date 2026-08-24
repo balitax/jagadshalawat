@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { GreenOrnament } from "./GreenOrnament";
 import dynamic from "next/dynamic";
 import { MagneticButton } from "./MagneticButton";

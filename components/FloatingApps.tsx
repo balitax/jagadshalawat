@@ -10,6 +10,7 @@ import {
   DuaIcon,
   CalendarIcon,
 } from "@/components/FloatingAppButton";
+import { HijriCalendar } from "@/components/HijriCalendar";
 
 type AppType = "jadwal" | "kiblat" | "zakat" | "quran" | "doa" | "hijriah" | null;
 
@@ -196,29 +197,10 @@ export function FloatingApps() {
       )}
 
       {/* ─── Kalender Hijriah ─── */}
-      {activeApp === "hijriah" && (
-        <div className="fixed bottom-24 right-6 z-50 w-[calc(100%-3rem)] max-w-sm sm:bottom-28 sm:right-8">
-          <div className="rounded-3xl border border-gold/20 bg-ink-2/95 p-6 shadow-2xl backdrop-blur-xl">
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CalendarIcon className="h-5 w-5 text-sky-500" />
-                <h3 className="font-display text-lg font-bold text-gradient-gold">
-                  Kalender Hijriah
-                </h3>
-              </div>
-              <button
-                onClick={() => setActiveApp(null)}
-                className="flex h-7 w-7 items-center justify-center rounded-full bg-gold/10 text-parchment-3 transition hover:bg-gold/20 hover:text-parchment"
-              >
-                ✕
-              </button>
-            </div>
-            <p className="text-sm text-parchment-2">
-              Mini app kalender hijriah akan segera hadir...
-            </p>
-          </div>
-        </div>
-      )}
+      <HijriCalendar
+        isOpen={activeApp === "hijriah"}
+        onClose={() => setActiveApp(null)}
+      />
     </>
   );
 }
