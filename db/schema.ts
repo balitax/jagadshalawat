@@ -7,7 +7,18 @@ import {
   integer,
   date,
   timestamp,
+  jsonb,
 } from "drizzle-orm/pg-core";
+
+/* ─── Content Parts (for Doa/Wirid structured content) ─── */
+export interface ContentPart {
+  type: "text" | "verse" | "repeat" | "separator";
+  label?: string;       // e.g. "Ayat 1", "Ayat Kursi"
+  count?: number;       // for repeat: how many times
+  arab?: string;
+  latin?: string;
+  translation?: string;
+}
 
 /* ─── Donations ─── */
 export const donations = pgTable("donations", {
@@ -98,3 +109,51 @@ export const gallery = pgTable("gallery", {
 
 export type GalleryPhoto = typeof gallery.$inferSelect;
 export type NewGalleryPhoto = typeof gallery.$inferInsert;
+
+/* ─── Doa (Bacaan Doa) ─── */
+export const doaCategories = pgTable("doa_categories", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
+export const doaItems = pgTable("doa_items", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  categoryId: uuid("category_id")
+    .notNull()
+    .references(() => doaCategories.id),
+  title: text("title").notNull(),
+  arab: text("arab").notNull(),
+  latin: text("latin").notNull(),
+  translation: text("translation").notNull(),
+  contentParts: jsonb("content_parts"),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
+export type DoaCategory = typeof doaCategories.$inferSelect;
+export type DoaItem = typeof doaItems.$inferSelect;
+
+/* ─── Wirid (Bacaan Wirid) ─── */
+export const wiridCategories = pgTable("wirid_categories", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
+export const wiridItems = pgTable("wirid_items", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  categoryId: uuid("category_id")
+    .notNull()
+    .references(() => wiridCategories.id),
+  title: text("title").notNull(),
+  arab: text("arab").notNull(),
+  latin: text("latin").notNull(),
+  translation: text("translation").notNull(),
+  contentParts: jsonb("content_parts"),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
+export type WiridCategory = typeof wiridCategories.$inferSelect;
+export type WiridItem = typeof wiridItems.$inferSelect;

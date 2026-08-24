@@ -65,6 +65,7 @@ const NAV_ITEMS = [
   { id: "jadwal", label: "Jadwal Kegiatan", icon: Clock },
   { id: "artikel", label: "Artikel & Pengumuman", icon: BookOpen },
   { id: "galeri", label: "Galeri Foto", icon: GalleryIcon },
+  { id: "doawirid", label: "Doa & Wirid", icon: BookOpen },
 ] as const;
 
 type NavId = (typeof NAV_ITEMS)[number]["id"];
@@ -296,12 +297,12 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-gold/15 bg-ink-2 transition-transform duration-200 lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-gold/15 bg-ink-2 transition-transform duration-200 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {/* Brand */}
-        <div className="flex h-16 items-center gap-3 border-b border-gold/15 px-5">
+        <div className="flex h-16 shrink-0 items-center gap-3 border-b border-gold/15 px-5">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gold/15 text-gold-2">
             <HandCoins className="h-4.5 w-4.5" />
           </span>
@@ -314,7 +315,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 space-y-1 px-3 py-4">
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const active = activeNav === item.id;
@@ -388,6 +389,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
           {activeNav === "jadwal" && <JadwalPage />}
           {activeNav === "artikel" && <ArtikelPage />}
           {activeNav === "galeri" && <GaleriPage />}
+          {activeNav === "doawirid" && <DoaWiridPage />}
         </main>
       </div>
     </div>
@@ -2008,6 +2010,829 @@ function GalleryForm({
             <X className="h-4 w-4" /> Batal
           </button>
           <button onClick={save} disabled={busy || !photoUrl} className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-gold-2 via-gold to-gold-3 px-5 py-2 text-sm font-semibold text-ink transition hover:brightness-110 disabled:opacity-60">
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Simpan
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HALAMAN DOA & WIRID
+   ═══════════════════════════════════════════════════════════ */
+
+interface DoaWiridCategory {
+  id: string;
+  name: string;
+  slug: string;
+  sortOrder: number;
+  items: DoaWiridItem[];
+}
+
+interface DoaWiridItem {
+  id: string;
+  categoryId: string;
+  title: string;
+  arab: string;
+  latin: string;
+  translation: string;
+  contentParts?: ContentPartItem[] | null;
+  sortOrder: number;
+}
+
+function DoaWiridPage() {
+  const [activeTab, setActiveTab] = useState<"doa" | "wirid">("doa");
+  const [categories, setCategories] = useState<DoaWiridCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [showItemForm, setShowItemForm] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<DoaWiridCategory | null>(null);
+  const [editingItem, setEditingItem] = useState<DoaWiridItem | null>(null);
+  const [search, setSearch] = useState("");
+
+  const apiBase = activeTab === "doa" ? "/api/admin/doa" : "/api/admin/wirid";
+
+  async function load() {
+    setLoading(true);
+    const res = await fetch(apiBase);
+    const data = await res.json();
+    setCategories(data.categories || []);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    load();
+    setSelectedCategory(null);
+    setSearch("");
+  }, [activeTab]);
+
+  async function deleteCategory(id: string) {
+    if (!confirm("Hapus kategori beserta semua item di dalamnya?")) return;
+    await fetch(apiBase, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "category", id }),
+    });
+    setSelectedCategory(null);
+    await load();
+  }
+
+  async function deleteItem(id: string) {
+    if (!confirm("Hapus bacaan ini?")) return;
+    await fetch(apiBase, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "item", id }),
+    });
+    await load();
+  }
+
+  const selectedCat = categories.find((c) => c.id === selectedCategory);
+
+  const filteredCategories = categories.filter((c) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      c.name.toLowerCase().includes(q) ||
+      c.items.some((i) => i.title.toLowerCase().includes(q))
+    );
+  });
+
+  const filteredItems = selectedCat?.items.filter((i) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      i.title.toLowerCase().includes(q) ||
+      i.translation.toLowerCase().includes(q)
+    );
+  });
+
+  const totalItems = categories.reduce((s, c) => s + c.items.length, 0);
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="font-display text-2xl font-semibold">Doa & Wirid</h1>
+          <p className="mt-1 text-sm text-parchment-3">
+            {categories.length} kategori · {totalItems} bacaan
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => { setEditingCategory(null); setShowCategoryForm(true); }}
+            className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-ink-2 px-4 py-2.5 text-sm font-medium text-parchment transition hover:bg-gold/10"
+          >
+            <Plus className="h-4 w-4" /> Kategori
+          </button>
+          {selectedCategory && (
+            <button
+              onClick={() => { setEditingItem(null); setShowItemForm(true); }}
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-gold-2 via-gold to-gold-3 px-5 py-2.5 text-sm font-semibold text-ink transition hover:brightness-110"
+            >
+              <Plus className="h-4 w-4" /> Tambah Bacaan
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="mb-4 flex gap-1 rounded-xl bg-ink-2 p-1">
+        <button
+          onClick={() => setActiveTab("doa")}
+          className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium transition ${
+            activeTab === "doa"
+              ? "bg-gold/15 text-gold-2"
+              : "text-parchment-3 hover:bg-ink-3 hover:text-parchment"
+          }`}
+        >
+          Doa ({categories.filter((c) => c.items.length > 0).length > 0 ? categories.reduce((s, c) => s + c.items.length, 0) : 0})
+        </button>
+        <button
+          onClick={() => setActiveTab("wirid")}
+          className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium transition ${
+            activeTab === "wirid"
+              ? "bg-gold/15 text-gold-2"
+              : "text-parchment-3 hover:bg-ink-3 hover:text-parchment"
+          }`}
+        >
+          Wirid ({categories.reduce((s, c) => s + c.items.length, 0)})
+        </button>
+      </div>
+
+      {/* Search */}
+      <div className="mb-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-parchment-3" />
+          <input
+            type="text"
+            placeholder={selectedCategory ? "Cari bacaan..." : "Cari kategori atau bacaan..."}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-xl border border-gold/15 bg-ink-2 py-2.5 pl-10 pr-4 text-sm outline-none transition placeholder:text-parchment-3 focus:border-gold/50"
+          />
+        </div>
+      </div>
+
+      {/* Content */}
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-gold-2" />
+        </div>
+      ) : selectedCategory && selectedCat ? (
+        /* Items List */
+        <div>
+          <button
+            onClick={() => setSelectedCategory(null)}
+            className="mb-4 inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-parchment-3 transition hover:bg-ink-2 hover:text-parchment"
+          >
+            <ChevronLeft className="h-4 w-4" /> Kembali ke Kategori
+          </button>
+
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="font-display text-xl font-semibold text-parchment">{selectedCat.name}</h2>
+            <span className="rounded-full bg-ink-2 px-3 py-1 text-xs text-parchment-3">
+              {filteredItems?.length || 0} bacaan
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {filteredItems && filteredItems.length > 0 ? (
+              filteredItems.map((item, i) => (
+                <div
+                  key={item.id}
+                  className="rounded-2xl border border-gold/15 bg-ink-2/40 p-4 transition hover:border-gold/30"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-gold/10 text-[11px] font-bold text-gold-2">
+                          {i + 1}
+                        </span>
+                        <h3 className="font-medium text-parchment">{item.title}</h3>
+                      </div>
+                      <p
+                        dir="rtl"
+                        className="mt-2 truncate text-right text-sm leading-relaxed text-amber-200/50"
+                        style={{ fontFamily: "'Amiri', 'Scheherazade New', serif" }}
+                      >
+                        {item.arab.slice(0, 120)}{item.arab.length > 120 ? "..." : ""}
+                      </p>
+                      {item.translation && (
+                        <p className="mt-1.5 line-clamp-2 text-xs text-parchment-3">{item.translation}</p>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 gap-1.5">
+                      <button
+                        onClick={() => { setEditingItem(item); setShowItemForm(true); }}
+                        className="inline-flex items-center gap-1 rounded-full border border-gold/30 px-2.5 py-1 text-[11px] font-medium text-parchment transition hover:bg-gold/10"
+                      >
+                        <Edit3 className="h-3 w-3" />
+                      </button>
+                      <button
+                        onClick={() => deleteItem(item.id)}
+                        className="inline-flex items-center gap-1 rounded-full border border-red-500/40 px-2.5 py-1 text-[11px] font-medium text-red-300 transition hover:bg-red-500/10"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-gold/15 py-12 text-center text-parchment-3">
+                {search ? `Tidak ditemukan untuk "${search}"` : "Belum ada bacaan."}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* Categories List */
+        <div className="space-y-3">
+          {filteredCategories.length > 0 ? (
+            filteredCategories.map((cat) => (
+              <div
+                key={cat.id}
+                className="group flex items-center gap-4 rounded-2xl border border-gold/15 bg-ink-2/40 p-4 transition hover:border-gold/30"
+              >
+                <button
+                  onClick={() => { setSelectedCategory(cat.id); setSearch(""); }}
+                  className="flex min-w-0 flex-1 items-center gap-4 text-left"
+                >
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gold/10">
+                    <BookOpen className="h-5 w-5 text-gold-2" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-parchment">{cat.name}</p>
+                    <p className="text-xs text-parchment-3">{cat.items.length} bacaan</p>
+                  </div>
+                  <span className="rounded-full bg-gold/10 px-2.5 py-1 text-xs font-medium text-gold-2">
+                    {cat.items.length}
+                  </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-parchment-3" />
+                </button>
+                <div className="flex shrink-0 gap-1.5 opacity-0 transition group-hover:opacity-100">
+                  <button
+                    onClick={() => { setEditingCategory(cat); setShowCategoryForm(true); }}
+                    className="inline-flex items-center gap-1 rounded-full border border-gold/30 px-2.5 py-1 text-[11px] font-medium text-parchment transition hover:bg-gold/10"
+                  >
+                    <Edit3 className="h-3 w-3" />
+                  </button>
+                  <button
+                    onClick={() => deleteCategory(cat.id)}
+                    className="inline-flex items-center gap-1 rounded-full border border-red-500/40 px-2.5 py-1 text-[11px] font-medium text-red-300 transition hover:bg-red-500/10"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="rounded-2xl border border-gold/15 py-12 text-center text-parchment-3">
+              {search ? `Tidak ditemukan untuk "${search}"` : "Belum ada kategori."}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Category Form Modal */}
+      {showCategoryForm && (
+        <DoaWiridCategoryForm
+          apiBase={apiBase}
+          category={editingCategory}
+          onClose={() => { setShowCategoryForm(false); setEditingCategory(null); }}
+          onSaved={() => { setShowCategoryForm(false); setEditingCategory(null); load(); }}
+        />
+      )}
+
+      {/* Item Form Modal */}
+      {showItemForm && selectedCategory && (
+        <DoaWiridItemForm
+          apiBase={apiBase}
+          categoryId={selectedCategory}
+          item={editingItem}
+          onClose={() => { setShowItemForm(false); setEditingItem(null); }}
+          onSaved={() => { setShowItemForm(false); setEditingItem(null); load(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function DoaWiridCategoryForm({
+  apiBase,
+  category,
+  onClose,
+  onSaved,
+}: {
+  apiBase: string;
+  category: DoaWiridCategory | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [name, setName] = useState(category?.name || "");
+  const [slug, setSlug] = useState(category?.slug || "");
+  const [sortOrder, setSortOrder] = useState(String(category?.sortOrder || 0));
+  const [busy, setBusy] = useState(false);
+
+  function autoSlug(text: string) {
+    return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  }
+
+  async function save() {
+    setBusy(true);
+    const method = category ? "PATCH" : "POST";
+    await fetch(apiBase, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "category",
+        id: category?.id,
+        name,
+        slug: slug || autoSlug(name),
+        sortOrder: Number(sortOrder),
+      }),
+    });
+    setBusy(false);
+    onSaved();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="glass w-full max-w-md rounded-3xl p-6 sm:p-8" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h3 className="font-display text-xl font-semibold">{category ? "Edit Kategori" : "Tambah Kategori"}</h3>
+          <button onClick={onClose} className="rounded-full p-1.5 text-parchment-3 transition hover:bg-ink-2 hover:text-parchment">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="mt-6 space-y-4">
+          <div>
+            <label className="mb-1 block text-xs text-parchment-3">Nama Kategori</label>
+            <input
+              value={name}
+              onChange={(e) => { setName(e.target.value); if (!category) setSlug(autoSlug(e.target.value)); }}
+              placeholder="contoh: Ratib"
+              className="w-full rounded-lg border border-gold/15 bg-ink-2 px-3 py-2.5 text-sm outline-none focus:border-gold/50"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-parchment-3">Slug</label>
+            <input
+              value={slug}
+              onChange={(e) => setSlug(e.target.value)}
+              placeholder="contoh: ratib"
+              className="w-full rounded-lg border border-gold/15 bg-ink-2 px-3 py-2.5 text-sm outline-none focus:border-gold/50"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-parchment-3">Urutan</label>
+            <input
+              type="number"
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              className="w-full rounded-lg border border-gold/15 bg-ink-2 px-3 py-2.5 text-sm outline-none focus:border-gold/50"
+            />
+          </div>
+        </div>
+        <div className="mt-6 flex justify-end gap-2">
+          <button onClick={onClose} className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 px-4 py-2 text-sm text-parchment transition hover:bg-gold/10">
+            <X className="h-4 w-4" /> Batal
+          </button>
+          <button onClick={save} disabled={busy || !name} className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-gold-2 via-gold to-gold-3 px-5 py-2 text-sm font-semibold text-ink transition hover:brightness-110 disabled:opacity-60">
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Simpan
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface ContentPartItem {
+  id: string;
+  type: "text" | "verse" | "repeat" | "separator";
+  label?: string;
+  count?: number;
+  arab: string;
+  latin: string;
+  translation: string;
+}
+
+function DoaWiridItemForm({
+  apiBase,
+  categoryId,
+  item,
+  onClose,
+  onSaved,
+}: {
+  apiBase: string;
+  categoryId: string;
+  item: DoaWiridItem | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [title, setTitle] = useState(item?.title || "");
+  const [arab, setArab] = useState(item?.arab || "");
+  const [latin, setLatin] = useState(item?.latin || "");
+  const [translation, setTranslation] = useState(item?.translation || "");
+  const [sortOrder, setSortOrder] = useState(String(item?.sortOrder || 0));
+  const [busy, setBusy] = useState(false);
+  const [tab, setTab] = useState<"arab" | "latin" | "terjemahan">("arab");
+  const [editorMode, setEditorMode] = useState<"simple" | "structured">(
+    item?.contentParts && Array.isArray(item.contentParts) && (item.contentParts as ContentPartItem[]).length > 0 ? "structured" : "simple"
+  );
+  const [parts, setParts] = useState<ContentPartItem[]>(() => {
+    if (item?.contentParts && Array.isArray(item.contentParts)) {
+      return (item.contentParts as ContentPartItem[]).map((p, i) => ({
+        ...p,
+        id: p.id || `part-${i}`,
+      }));
+    }
+    return [];
+  });
+
+  function addPart(type: ContentPartItem["type"]) {
+    const newPart: ContentPartItem = {
+      id: `part-${Date.now()}`,
+      type,
+      label: type === "verse" ? `Ayat ${parts.filter((p) => p.type === "verse").length + 1}` : undefined,
+      count: type === "repeat" ? 3 : undefined,
+      arab: "",
+      latin: "",
+      translation: "",
+    };
+    setParts([...parts, newPart]);
+  }
+
+  function updatePart(id: string, updates: Partial<ContentPartItem>) {
+    setParts(parts.map((p) => (p.id === id ? { ...p, ...updates } : p)));
+  }
+
+  function removePart(id: string) {
+    setParts(parts.filter((p) => p.id !== id));
+  }
+
+  function movePart(id: string, direction: "up" | "down") {
+    const idx = parts.findIndex((p) => p.id === id);
+    if (idx === -1) return;
+    const newParts = [...parts];
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= newParts.length) return;
+    [newParts[idx], newParts[swapIdx]] = [newParts[swapIdx], newParts[idx]];
+    setParts(newParts);
+  }
+
+  async function save() {
+    setBusy(true);
+    const contentParts = editorMode === "structured" ? parts : null;
+    // For simple mode, save directly to arab/latin/translation
+    // For structured mode, also generate arab/latin/translation from parts
+    let finalArab = arab;
+    let finalLatin = latin;
+    let finalTranslation = translation;
+
+    if (editorMode === "structured" && parts.length > 0) {
+      const arabParts: string[] = [];
+      const latinParts: string[] = [];
+      const translationParts: string[] = [];
+
+      for (const part of parts) {
+        if (part.type === "separator") {
+          arabParts.push("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+          latinParts.push("────────────────────────────────────────────────────────────────────────────");
+          translationParts.push("────────────────────────────────────────────────────────────────────────────");
+          continue;
+        }
+
+        if (part.label) {
+          arabParts.push(`【 ${part.label} 】`);
+          latinParts.push(`── ${part.label} ──`);
+          translationParts.push(`── ${part.label} ──`);
+        }
+
+        if (part.type === "repeat" && part.count && part.count > 1) {
+          arabParts.push(`${part.arab}  ×${part.count}`);
+          latinParts.push(`${part.latin}  ×${part.count}`);
+          translationParts.push(`${part.translation}  (${part.count}×)`);
+        } else {
+          if (part.arab) arabParts.push(part.arab);
+          if (part.latin) latinParts.push(part.latin);
+          if (part.translation) translationParts.push(part.translation);
+        }
+      }
+
+      finalArab = arabParts.join("\n\n");
+      finalLatin = latinParts.join("\n\n");
+      finalTranslation = translationParts.join("\n\n");
+    }
+
+    const method = item ? "PATCH" : "POST";
+    await fetch(apiBase, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "item",
+        id: item?.id,
+        categoryId,
+        title,
+        arab: finalArab,
+        latin: finalLatin,
+        translation: finalTranslation,
+        contentParts: contentParts,
+        sortOrder: Number(sortOrder),
+      }),
+    });
+    setBusy(false);
+    onSaved();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="glass flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl p-6 sm:p-8" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h3 className="font-display text-xl font-semibold">{item ? "Edit Bacaan" : "Tambah Bacaan"}</h3>
+          <button onClick={onClose} className="rounded-full p-1.5 text-parchment-3 transition hover:bg-ink-2 hover:text-parchment">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="mt-6 flex-1 overflow-y-auto space-y-4">
+          <div>
+            <label className="mb-1 block text-xs text-parchment-3">Judul</label>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="contoh: Ratib al-Haddad"
+              className="w-full rounded-lg border border-gold/15 bg-ink-2 px-3 py-2.5 text-sm outline-none focus:border-gold/50"
+            />
+          </div>
+
+          {/* Editor Mode Toggle */}
+          <div>
+            <label className="mb-2 block text-xs text-parchment-3">Mode Editor</label>
+            <div className="flex gap-1 rounded-lg bg-ink-3 p-0.5">
+              <button
+                onClick={() => setEditorMode("simple")}
+                className={`flex-1 rounded-md py-2.5 text-sm font-medium transition ${
+                  editorMode === "simple"
+                    ? "bg-gold/15 text-gold-2"
+                    : "text-parchment-3 hover:text-parchment"
+                }`}
+              >
+                ✏️ Mode Sederhana
+              </button>
+              <button
+                onClick={() => setEditorMode("structured")}
+                className={`flex-1 rounded-md py-2.5 text-sm font-medium transition ${
+                  editorMode === "structured"
+                    ? "bg-gold/15 text-gold-2"
+                    : "text-parchment-3 hover:text-parchment"
+                }`}
+              >
+                📖 Mode Terstruktur
+              </button>
+            </div>
+          </div>
+
+          {/* Simple Mode */}
+          {editorMode === "simple" && (
+            <div>
+              <div className="mb-2 flex gap-1 rounded-lg bg-ink-3 p-0.5">
+                {(["arab", "latin", "terjemahan"] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setTab(t)}
+                    className={`flex-1 rounded-md py-2 text-sm font-medium transition ${
+                      tab === t
+                        ? "bg-gold/15 text-gold-2"
+                        : "text-parchment-3 hover:text-parchment"
+                    }`}
+                  >
+                    {t === "arab" ? "Teks Arab" : t === "latin" ? "Bacaan Latin" : "Terjemahan"}
+                  </button>
+                ))}
+              </div>
+
+              {tab === "arab" && (
+                <textarea
+                  value={arab}
+                  onChange={(e) => setArab(e.target.value)}
+                  dir="rtl"
+                  rows={12}
+                  placeholder="Tuliskan teks Arab di sini..."
+                  className="w-full rounded-lg border border-gold/15 bg-ink-2 px-3 py-2.5 text-base leading-loose outline-none focus:border-gold/50"
+                  style={{ fontFamily: "'Amiri', 'Scheherazade New', serif" }}
+                />
+              )}
+
+              {tab === "latin" && (
+                <textarea
+                  value={latin}
+                  onChange={(e) => setLatin(e.target.value)}
+                  rows={12}
+                  placeholder="Tuliskan bacaan Latin di sini..."
+                  className="w-full rounded-lg border border-gold/15 bg-ink-2 px-3 py-2.5 text-sm leading-relaxed outline-none focus:border-gold/50"
+                />
+              )}
+
+              {tab === "terjemahan" && (
+                <textarea
+                  value={translation}
+                  onChange={(e) => setTranslation(e.target.value)}
+                  rows={12}
+                  placeholder="Tuliskan terjemahan dalam Bahasa Indonesia..."
+                  className="w-full rounded-lg border border-gold/15 bg-ink-2 px-3 py-2.5 text-sm leading-relaxed outline-none focus:border-gold/50"
+                />
+              )}
+            </div>
+          )}
+
+          {/* Structured Mode */}
+          {editorMode === "structured" && (
+            <div className="space-y-3">
+              {/* Add Part Buttons */}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => addPart("text")}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-ink-2 px-3 py-1.5 text-xs font-medium text-parchment transition hover:bg-gold/10"
+                >
+                  <Plus className="h-3 w-3" /> Teks
+                </button>
+                <button
+                  onClick={() => addPart("verse")}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-300 transition hover:bg-emerald-500/20"
+                >
+                  <Plus className="h-3 w-3" /> Ayat
+                </button>
+                <button
+                  onClick={() => addPart("repeat")}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-300 transition hover:bg-amber-500/20"
+                >
+                  <Plus className="h-3 w-3" /> Ulangi
+                </button>
+                <button
+                  onClick={() => addPart("separator")}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-purple-500/30 bg-purple-500/10 px-3 py-1.5 text-xs font-medium text-purple-300 transition hover:bg-purple-500/20"
+                >
+                  <Plus className="h-3 w-3" /> Pemisah
+                </button>
+              </div>
+
+              {/* Parts List */}
+              {parts.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-gold/20 py-8 text-center text-sm text-parchment-3">
+                  Klik tombol di atas untuk menambah bagian bacaan.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {parts.map((part, idx) => {
+                    const typeColors = {
+                      text: "border-gold/20",
+                      verse: "border-emerald-500/30",
+                      repeat: "border-amber-500/30",
+                      separator: "border-purple-500/30",
+                    };
+                    const typeLabels = {
+                      text: "Teks",
+                      verse: `Ayat ${parts.filter((p, i) => i <= idx && p.type === "verse").length}`,
+                      repeat: `Ulangi ${part.count || 3}×`,
+                      separator: "Pemisah",
+                    };
+                    const typeBg = {
+                      text: "bg-gold/5",
+                      verse: "bg-emerald-500/5",
+                      repeat: "bg-amber-500/5",
+                      separator: "bg-purple-500/5",
+                    };
+
+                    return (
+                      <div
+                        key={part.id}
+                        className={`rounded-xl border ${typeColors[part.type]} ${typeBg[part.type]} p-4`}
+                      >
+                        {/* Part Header */}
+                        <div className="mb-3 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="rounded-full bg-ink-2 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-parchment-3">
+                              {typeLabels[part.type]}
+                            </span>
+                            {part.type === "repeat" && (
+                              <div className="flex items-center gap-1">
+                                <label className="text-[10px] text-parchment-3">×Lihat:</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="999"
+                                  value={part.count || 3}
+                                  onChange={(e) => updatePart(part.id, { count: Number(e.target.value) || 1 })}
+                                  className="w-14 rounded border border-gold/15 bg-ink-2 px-2 py-0.5 text-center text-xs outline-none focus:border-gold/50"
+                                />
+                              </div>
+                            )}
+                            {part.type !== "separator" && (
+                              <input
+                                value={part.label || ""}
+                                onChange={(e) => updatePart(part.id, { label: e.target.value })}
+                                placeholder="Label (opsional)"
+                                className="rounded border border-gold/10 bg-transparent px-2 py-0.5 text-xs text-parchment-3 outline-none placeholder:text-parchment-3/50 focus:border-gold/30"
+                              />
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => movePart(part.id, "up")}
+                              disabled={idx === 0}
+                              className="rounded p-1 text-parchment-3 transition hover:bg-ink-2 hover:text-parchment disabled:opacity-30"
+                              title="Geser ke atas"
+                            >
+                              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" /></svg>
+                            </button>
+                            <button
+                              onClick={() => movePart(part.id, "down")}
+                              disabled={idx === parts.length - 1}
+                              className="rounded p-1 text-parchment-3 transition hover:bg-ink-2 hover:text-parchment disabled:opacity-30"
+                              title="Geser ke bawah"
+                            >
+                              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                            </button>
+                            <button
+                              onClick={() => removePart(part.id)}
+                              className="rounded p-1 text-red-400 transition hover:bg-red-500/10"
+                              title="Hapus"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Part Content */}
+                        {part.type !== "separator" && (
+                          <div className="space-y-2">
+                            <div>
+                              <label className="mb-1 block text-[10px] text-parchment-3">Teks Arab</label>
+                              <textarea
+                                value={part.arab}
+                                onChange={(e) => updatePart(part.id, { arab: e.target.value })}
+                                dir="rtl"
+                                rows={3}
+                                placeholder="Tuliskan teks Arab..."
+                                className="w-full rounded border border-gold/10 bg-ink-2/50 px-2.5 py-2 text-sm leading-relaxed outline-none focus:border-gold/30"
+                                style={{ fontFamily: "'Amiri', 'Scheherazade New', serif" }}
+                              />
+                            </div>
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              <div>
+                                <label className="mb-1 block text-[10px] text-parchment-3">Bacaan Latin</label>
+                                <textarea
+                                  value={part.latin}
+                                  onChange={(e) => updatePart(part.id, { latin: e.target.value })}
+                                  rows={2}
+                                  placeholder="Latin..."
+                                  className="w-full rounded border border-gold/10 bg-ink-2/50 px-2.5 py-2 text-xs leading-relaxed outline-none focus:border-gold/30"
+                                />
+                              </div>
+                              <div>
+                                <label className="mb-1 block text-[10px] text-parchment-3">Terjemahan</label>
+                                <textarea
+                                  value={part.translation}
+                                  onChange={(e) => updatePart(part.id, { translation: e.target.value })}
+                                  rows={2}
+                                  placeholder="Terjemahan..."
+                                  className="w-full rounded border border-gold/10 bg-ink-2/50 px-2.5 py-2 text-xs leading-relaxed outline-none focus:border-gold/30"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div>
+            <label className="mb-1 block text-xs text-parchment-3">Urutan</label>
+            <input
+              type="number"
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              className="w-full rounded-lg border border-gold/15 bg-ink-2 px-3 py-2.5 text-sm outline-none focus:border-gold/50"
+            />
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-2">
+          <button onClick={onClose} className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 px-4 py-2 text-sm text-parchment transition hover:bg-gold/10">
+            <X className="h-4 w-4" /> Batal
+          </button>
+          <button onClick={save} disabled={busy || !title} className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-gold-2 via-gold to-gold-3 px-5 py-2 text-sm font-semibold text-ink transition hover:brightness-110 disabled:opacity-60">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Simpan
           </button>

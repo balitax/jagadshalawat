@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTheme } from "@/components/ThemeProvider";
 
 // ─── Hijri Date Conversion ───
 const HIJRI_MONTHS = [
@@ -106,6 +107,8 @@ interface HijriCalendarProps {
 }
 
 export function HijriCalendar({ isOpen, onClose }: HijriCalendarProps) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const now = new Date();
   const ht = gregorianToHijri(now.getFullYear(), now.getMonth() + 1, now.getDate());
 
@@ -250,34 +253,35 @@ export function HijriCalendar({ isOpen, onClose }: HijriCalendarProps) {
     <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center sm:p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={onClose} />
 
-      <div className="relative z-10 w-full max-w-md overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-b from-[#1a1d1a] to-[#0f110f] shadow-2xl">
+      <div className="relative z-10 w-full max-w-md overflow-hidden rounded-[2rem] border border-gold/10 bg-ink shadow-2xl">
+        <div className="pointer-events-none absolute inset-0 opacity-30 dark:opacity-10" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cg fill='none' stroke='%23157a52' stroke-width='0.5'%3E%3Cpath d='M30 0v60M0 30h60'/%3E%3Ccircle cx='30' cy='30' r='10' opacity='0.4'/%3E%3C/g%3E%3C/svg%3E\")" }} />
         {/* ── Header ── */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-emerald-900/40 via-emerald-800/20 to-emerald-900/40 px-5 pt-5 pb-4">
+        <div className="relative overflow-hidden bg-gradient-to-r from-emerald-js/20 via-emerald-js/12 to-emerald-js/20 px-5 pt-5 pb-4">
           <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d3ad57' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }} />
 
           <div className="relative flex items-start justify-between">
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-widest text-emerald-400/70">Kalender</p>
-              <h2 className="mt-1 font-display text-2xl font-bold text-white">{viewMonthName}</h2>
-              <p className="mt-0.5 text-sm text-white/50">
+              <p className="text-[11px] font-medium uppercase tracking-widest text-emerald-js">Kalender</p>
+              <h2 className="mt-1 font-display text-2xl font-bold text-parchment">{viewMonthName}</h2>
+              <p className="mt-0.5 text-sm text-parchment-3">
                 {isHijri ? `${hijriYear} H` : `${gregYear} M`}
                 <span className="mx-1.5 text-white/20">·</span>
-                <span className="text-xs text-white/30">
+                <span className="text-xs text-parchment-3">
                   {isHijri ? `${monthStartGreg.getDate()} ${GREG_MONTHS[monthStartGreg.getMonth()]} ${monthStartGreg.getFullYear()}` : `${ht.day} ${HIJRI_MONTHS[ht.month - 1]} ${ht.year} H`}
                 </span>
               </p>
             </div>
             <div className="flex items-start gap-2">
               <div className="text-right">
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 backdrop-blur-sm">
-                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-xs font-medium text-white/80">Hari Ini</span>
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-gold/10 px-3 py-1.5 backdrop-blur-sm">
+                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-js animate-pulse" />
+                  <span className="text-xs font-medium text-parchment">Hari Ini</span>
                 </div>
-                <p className="mt-2 text-xs text-white/40">{DAYS_FULL[now.getDay()]}, {fmtGreg(now)}</p>
+                <p className="mt-2 text-xs text-parchment-3">{DAYS_FULL[now.getDay()]}, {fmtGreg(now)}</p>
               </div>
               <button
                 onClick={onClose}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/50 backdrop-blur-sm transition hover:bg-white/20 hover:text-white"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gold/10 text-parchment-3 backdrop-blur-sm transition hover:bg-gold/20 hover:text-parchment"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
@@ -286,11 +290,11 @@ export function HijriCalendar({ isOpen, onClose }: HijriCalendarProps) {
 
           {/* Tabs + Mode Toggle */}
           <div className="relative mt-4 flex items-center gap-2">
-            <div className="flex flex-1 gap-1 rounded-xl bg-black/20 p-1">
+            <div className="flex flex-1 gap-1 rounded-xl bg-ink-3 p-1">
               <button
                 onClick={() => setTab("calendar")}
                 className={`flex-1 rounded-lg py-1.5 text-xs font-medium transition-all ${
-                  tab === "calendar" ? "bg-white/10 text-white shadow-sm" : "text-white/40 hover:text-white/60"
+                  tab === "calendar" ? "bg-gold/15 text-gold-2 shadow-sm" : "text-parchment-3 hover:text-parchment"
                 }`}
               >
                 Kalender
@@ -298,7 +302,7 @@ export function HijriCalendar({ isOpen, onClose }: HijriCalendarProps) {
               <button
                 onClick={() => setTab("events")}
                 className={`flex-1 rounded-lg py-1.5 text-xs font-medium transition-all ${
-                  tab === "events" ? "bg-white/10 text-white shadow-sm" : "text-white/40 hover:text-white/60"
+                  tab === "events" ? "bg-gold/15 text-gold-2 shadow-sm" : "text-parchment-3 hover:text-parchment"
                 }`}
               >
                 Kegiatan ({monthEvents.length})
@@ -306,7 +310,7 @@ export function HijriCalendar({ isOpen, onClose }: HijriCalendarProps) {
             </div>
             <button
               onClick={switchMode}
-              className="flex h-8 items-center gap-1.5 rounded-xl bg-white/10 px-3 text-[10px] font-semibold uppercase tracking-wider text-white/60 transition hover:bg-white/15 hover:text-white/80"
+              className="flex h-8 items-center gap-1.5 rounded-xl bg-gold/10 px-3 text-[10px] font-semibold uppercase tracking-wider text-parchment-3 transition hover:bg-gold/15 hover:text-parchment"
             >
               <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" /></svg>
               {isHijri ? "Masehi" : "Hijriah"}
@@ -320,16 +324,16 @@ export function HijriCalendar({ isOpen, onClose }: HijriCalendarProps) {
             <>
               {/* Month Nav */}
               <div className="flex items-center justify-between">
-                <button onClick={prevMonth} className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 text-white/50 transition hover:bg-white/10 hover:text-white">
+                <button onClick={prevMonth} className="flex h-9 w-9 items-center justify-center rounded-xl bg-gold/5 text-parchment-3 transition hover:bg-gold/10 hover:text-parchment">
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
                 </button>
-                <button onClick={goToday} className="group flex flex-col items-center rounded-xl px-4 py-1 transition hover:bg-white/5">
-                  <span className="text-sm font-semibold text-white">{viewMonthName}</span>
-                  <span className="text-[10px] text-white/30 group-hover:text-white/50">
+                <button onClick={goToday} className="group flex flex-col items-center rounded-xl px-4 py-1 transition hover:bg-gold/5">
+                  <span className="text-sm font-semibold text-parchment">{viewMonthName}</span>
+                  <span className="text-[10px] text-parchment-3 group-hover:text-parchment">
                     {isHijri ? `${hijriYear} H · ${monthStartGreg.getFullYear()} M` : `${gregYear} M · ${ht.year} H`}
                   </span>
                 </button>
-                <button onClick={nextMonth} className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 text-white/50 transition hover:bg-white/10 hover:text-white">
+                <button onClick={nextMonth} className="flex h-9 w-9 items-center justify-center rounded-xl bg-gold/5 text-parchment-3 transition hover:bg-gold/10 hover:text-parchment">
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
                 </button>
               </div>
@@ -337,7 +341,7 @@ export function HijriCalendar({ isOpen, onClose }: HijriCalendarProps) {
               {/* Day Headers */}
               <div className="mt-3 grid grid-cols-7 gap-1">
                 {DAYS.map((d, i) => (
-                  <div key={d} className={`py-1.5 text-center text-[10px] font-semibold uppercase ${i === 5 ? "text-emerald-400/60" : "text-white/25"}`}>
+                  <div key={d} className={`py-1.5 text-center text-[10px] font-semibold uppercase ${i === 5 ? "text-emerald-js" : "text-parchment-3"}`}>
                     {d}
                   </div>
                 ))}
@@ -349,7 +353,7 @@ export function HijriCalendar({ isOpen, onClose }: HijriCalendarProps) {
                   if (c.day === 0) {
                     return (
                       <div key={`p${i}`} className="aspect-square flex items-center justify-center">
-                        <span className="text-[10px] text-white/15">{isHijri ? c.greg.getDate() : c.hijri.d}</span>
+                        <span className="text-[10px] text-parchment-3/50">{isHijri ? c.greg.getDate() : c.hijri.d}</span>
                       </div>
                     );
                   }
@@ -370,20 +374,20 @@ export function HijriCalendar({ isOpen, onClose }: HijriCalendarProps) {
                       onClick={() => setSelected(isSelected ? null : c.day)}
                       className={`relative aspect-square rounded-xl text-center transition-all duration-200 ${
                         isToday
-                          ? "bg-gradient-to-b from-emerald-500 to-emerald-600 text-white font-bold shadow-lg shadow-emerald-500/30"
+                          ? "bg-gradient-to-b from-emerald-js to-emerald-js-2 text-white font-bold shadow-lg shadow-emerald-js/30"
                           : isSelected
-                          ? "bg-white/10 text-white ring-1 ring-white/20"
-                          : "text-white/70 hover:bg-white/5"
+                          ? "bg-gold/10 text-parchment ring-1 ring-gold/20"
+                          : "text-parchment hover:bg-gold/5"
                       }`}
                     >
                       <span className="flex flex-col items-center justify-center">
                         <span className="text-sm">{c.day}</span>
-                        <span className={`text-[8px] leading-none ${isToday ? "text-white/60" : "text-white/20"}`}>
+                        <span className={`text-[8px] leading-none ${isToday ? "text-white/60" : "text-parchment-3"}`}>
                           {isHijri ? c.greg.getDate() : c.hijri.d}
                         </span>
                       </span>
                       {(hasEvent || isImportant) && !isToday && (
-                        <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full ${hasEvent ? "bg-emerald-400" : "bg-amber-400"}`} />
+                        <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full ${hasEvent ? "bg-emerald-js" : "bg-gold"}`} />
                       )}
                     </button>
                   );
@@ -392,19 +396,19 @@ export function HijriCalendar({ isOpen, onClose }: HijriCalendarProps) {
 
               {/* Selected Day Detail */}
               {selData && (
-                <div className="mt-4 overflow-hidden rounded-2xl border border-white/5 bg-white/[0.03]">
-                  <div className="border-b border-white/5 bg-white/[0.02] px-4 py-3">
+                <div className="mt-4 overflow-hidden rounded-2xl border border-gold/10 bg-ink-2">
+                  <div className="border-b border-gold/10 bg-ink-3 px-4 py-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-semibold text-white">
+                        <p className="text-sm font-semibold text-parchment">
                           {selData.hijri.d} {HIJRI_MONTHS[selData.hijri.m - 1]} {selData.hijri.y} H
                         </p>
-                        <p className="text-[11px] text-white/35">
+                        <p className="text-[11px] text-parchment-3">
                           {DAYS_FULL[selData.greg.getDay()]}, {fmtGreg(selData.greg)} M
                         </p>
                       </div>
                       {selData.important && (
-                        <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-[10px] font-semibold text-amber-400">
+                        <span className="rounded-full bg-gold/15 px-2.5 py-1 text-[10px] font-semibold text-gold-2">
                           {selData.important}
                         </span>
                       )}
@@ -415,11 +419,11 @@ export function HijriCalendar({ isOpen, onClose }: HijriCalendarProps) {
                     {selData.events.length > 0 ? (
                       <div className="space-y-2">
                         {selData.events.map(ev => (
-                          <div key={ev.id} className="flex items-start gap-3 rounded-xl bg-white/[0.03] p-3 transition hover:bg-white/[0.06]">
-                            <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${TYPE_COLORS[ev.type] || "bg-white/30"}`} />
+                          <div key={ev.id} className="flex items-start gap-3 rounded-xl bg-ink-3 p-3 transition hover:bg-gold/5">
+                            <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${TYPE_COLORS[ev.type] || "bg-parchment-3"}`} />
                             <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium text-white truncate">{ev.title}</p>
-                              <div className="mt-0.5 flex items-center gap-2 text-[11px] text-white/30">
+                              <p className="text-sm font-medium text-parchment truncate">{ev.title}</p>
+                              <div className="mt-0.5 flex items-center gap-2 text-[11px] text-parchment-3">
                                 {ev.time && <span>{ev.time}</span>}
                                 {ev.time && <span>·</span>}
                                 <span className="capitalize">{ev.type}</span>
@@ -430,10 +434,10 @@ export function HijriCalendar({ isOpen, onClose }: HijriCalendarProps) {
                       </div>
                     ) : (
                       <div className="flex flex-col items-center py-4 text-center">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5">
-                          <svg className="h-5 w-5 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2" /></svg>
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gold/10">
+                          <svg className="h-5 w-5 text-parchment-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2" /></svg>
                         </div>
-                        <p className="mt-2 text-xs text-white/30">Tidak ada kegiatan</p>
+                        <p className="mt-2 text-xs text-parchment-3">Tidak ada kegiatan</p>
                       </div>
                     )}
                   </div>
@@ -441,10 +445,10 @@ export function HijriCalendar({ isOpen, onClose }: HijriCalendarProps) {
               )}
 
               {/* Legend */}
-              <div className="mt-4 flex items-center justify-center gap-4 text-[10px] text-white/25">
-                <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Hari ini</span>
-                <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-amber-400" /> Penting</span>
-                <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400/60" /> Kegiatan</span>
+              <div className="mt-4 flex items-center justify-center gap-4 text-[10px] text-parchment-3">
+                <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-emerald-js" /> Hari ini</span>
+                <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-gold" /> Penting</span>
+                <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-emerald-js/60" /> Kegiatan</span>
               </div>
             </>
           ) : (
@@ -454,34 +458,34 @@ export function HijriCalendar({ isOpen, onClose }: HijriCalendarProps) {
                 const d = new Date(ev.date + "T00:00:00");
                 const hijri = gregorianToHijri(d.getFullYear(), d.getMonth() + 1, d.getDate());
                 return (
-                  <div key={ev.id} className="flex items-start gap-3 rounded-xl bg-white/[0.03] p-3 transition hover:bg-white/[0.06]">
-                    <div className="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-xl bg-white/5">
-                      <span className="text-[10px] font-bold text-white/80">{d.getDate()}</span>
-                      <span className="text-[8px] text-white/30">{GREG_MONTHS[d.getMonth()].slice(0, 3)}</span>
+                  <div key={ev.id} className="flex items-start gap-3 rounded-xl bg-ink-2 p-3 transition hover:bg-ink-3">
+                    <div className="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-xl bg-gold/10">
+                      <span className="text-[10px] font-bold text-parchment">{d.getDate()}</span>
+                      <span className="text-[8px] text-parchment-3">{GREG_MONTHS[d.getMonth()].slice(0, 3)}</span>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-white truncate">{ev.title}</p>
-                      <div className="mt-0.5 flex items-center gap-2 text-[11px] text-white/30">
+                      <p className="text-sm font-medium text-parchment truncate">{ev.title}</p>
+                      <div className="mt-0.5 flex items-center gap-2 text-[11px] text-parchment-3">
                         {ev.time && <span>{ev.time}</span>}
                         <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium ${
-                          ev.type === "sholawat" ? "bg-emerald-500/15 text-emerald-400" :
-                          ev.type === "dzikir" ? "bg-amber-500/15 text-amber-400" :
+                          ev.type === "sholawat" ? "bg-emerald-js/15 text-emerald-js" :
+                          ev.type === "dzikir" ? "bg-gold/15 text-gold-2" :
                           ev.type === "event" ? "bg-blue-500/15 text-blue-400" :
                           "bg-purple-500/15 text-purple-400"
                         }`}>
                           {ev.type}
                         </span>
                       </div>
-                      <p className="mt-0.5 text-[10px] text-white/20">{hijri.day} {HIJRI_MONTHS[hijri.month - 1]} {hijri.year} H</p>
+                      <p className="mt-0.5 text-[10px] text-parchment-3">{hijri.day} {HIJRI_MONTHS[hijri.month - 1]} {hijri.year} H</p>
                     </div>
                   </div>
                 );
               }) : (
                 <div className="flex flex-col items-center py-8 text-center">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5">
-                    <svg className="h-6 w-6 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gold/10">
+                    <svg className="h-6 w-6 text-parchment-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
                   </div>
-                  <p className="mt-3 text-sm text-white/30">Belum ada kegiatan bulan ini</p>
+                  <p className="mt-3 text-sm text-parchment-3">Belum ada kegiatan bulan ini</p>
                 </div>
               )}
             </div>

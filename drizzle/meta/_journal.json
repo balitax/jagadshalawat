@@ -15,6 +15,20 @@
       "when": 1787495075838,
       "tag": "0001_flaky_captain_stacy",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787549548620,
+      "tag": "0002_many_madripoor",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787559040200,
+      "tag": "0003_add_content_parts",
+      "breakpoints": true
     }
   ]
 }
