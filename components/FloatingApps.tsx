@@ -4,7 +4,6 @@ import { useState } from "react";
 import {
   FloatingAppButton,
   PrayerIcon,
-  CompassIcon,
   CalculatorIcon,
   QuranIcon,
   DuaIcon,
@@ -13,7 +12,7 @@ import {
 import { HijriCalendar } from "@/components/HijriCalendar";
 import { DoaHarian } from "@/components/DoaHarian";
 
-type AppType = "jadwal" | "kiblat" | "zakat" | "quran" | "doa" | "hijriah" | null;
+type AppType = "jadwal" | "zakat" | "quran" | "doa" | "hijriah" | null;
 
 export function FloatingApps() {
   const [activeApp, setActiveApp] = useState<AppType>(null);
@@ -44,12 +43,7 @@ export function FloatingApps() {
           color="emerald"
           onClick={() => toggleApp("quran")}
         />
-        <FloatingAppButton
-          icon={<CompassIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
-          label="Arah Kiblat"
-          color="gold"
-          onClick={() => toggleApp("kiblat")}
-        />
+
         <FloatingAppButton
           icon={<CalculatorIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
           label="Kalkulator Zakat"
@@ -97,30 +91,7 @@ export function FloatingApps() {
         </div>
       )}
 
-      {/* ─── Arah Kiblat ─── */}
-      {activeApp === "kiblat" && (
-        <div className="fixed bottom-24 right-6 z-50 w-[calc(100%-3rem)] max-w-sm sm:bottom-28 sm:right-8">
-          <div className="rounded-3xl border border-gold/20 bg-ink-2/95 p-6 shadow-2xl backdrop-blur-xl">
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CompassIcon className="h-5 w-5 text-gold" />
-                <h3 className="font-display text-lg font-bold text-gradient-gold">
-                  Arah Kiblat
-                </h3>
-              </div>
-              <button
-                onClick={() => setActiveApp(null)}
-                className="flex h-7 w-7 items-center justify-center rounded-full bg-gold/10 text-parchment-3 transition hover:bg-gold/20 hover:text-parchment"
-              >
-                ✕
-              </button>
-            </div>
-            <p className="text-sm text-parchment-2">
-              Mini app arah kiblat akan segera hadir...
-            </p>
-          </div>
-        </div>
-      )}
+
 
       {/* ─── Kalkulator Zakat ─── */}
       {activeApp === "zakat" && (
