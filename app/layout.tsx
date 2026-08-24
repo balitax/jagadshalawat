@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
 import "./globals.css";
 import { RevealObserver } from "@/components/RevealObserver";
+import { DevServiceWorkerCleanup } from "@/components/DevServiceWorkerCleanup";
 
 const cormorant = Cormorant_Garamond({
   variable: "--font-cormorant",
@@ -16,9 +17,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Jagad Shalawat — Kas & Donasi",
+  title: "Jagad Shalawat — Komunitas Dzikir & Shalawat",
   description:
-    "Pencatatan kas dan donasi komunitas Jagad Shalawat. Madrasah dan program yang kami kelola bergerak berkat kepercayaan dan dukungan Anda.",
+    "Komunitas dzikir dan shalawat Jagad Shalawat. Jadwal kegiatan, donasi, artikel, dan dokumentasi kegiatan komunitas.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${cormorant.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-ink text-parchment">
+        {process.env.NODE_ENV === "development" && <DevServiceWorkerCleanup />}
         <RevealObserver />
         {children}
       </body>

@@ -145,26 +145,27 @@ export function DonationForm() {
   }
 
   return (
-    <section id="donasi" className="shell scroll-mt-24 py-16 sm:py-24">
-      <SectionHeader
-        eyebrow="Donasi & Catat Kas"
-        title="Alirkan"
-        highlight="kebaikan anda"
-        subtitle="Bayar ke kanal pilihan lalu catat donasi anda — rahasia bila diinginkan, tercatat bila dizinkan."
-      />
+    <section id="donasi" className="scroll-mt-24 py-20 sm:py-28">
+      <div className="shell">
+        <SectionHeader
+          eyebrow="Donasi & Catat Kas"
+          title="Alirkan"
+          highlight="kebaikan anda"
+          subtitle="Bayar ke kanal pilihan lalu catat donasi anda — rahasia bila diinginkan, tercatat bila dizinkan."
+        />
 
-      <div className="reveal mt-10 sm:mt-14">
-        <div className="glass relative overflow-hidden rounded-3xl">
+        <div className="reveal mt-12 mx-auto max-w-3xl">
+          <div className="glass-strong relative overflow-hidden rounded-3xl">
           <CornerBrackets />
           {/* Stepper */}
           {status !== "success" && (
             <div className="border-b border-gold/10 px-5 py-5 sm:px-8">
-              <ol className="mx-auto flex max-w-2xl items-center justify-between">
+              <ol className="flex w-full items-center">
                 {STEPS.map((s, i) => {
                   const done = i < step;
                   const current = i === step;
                   return (
-                    <li key={s.key} className="flex flex-1 items-center">
+                    <li key={s.key} className="flex shrink-0 items-center">
                       <div className="flex flex-col items-center gap-1.5">
                         <span
                           className={`flex h-9 w-9 items-center justify-center rounded-full border text-sm font-semibold transition ${
@@ -259,6 +260,7 @@ export function DonationForm() {
         onChange={onFileChange}
         className="hidden"
       />
+      </div>
     </section>
   );
 }
@@ -285,7 +287,7 @@ function NominalStep({
       title="Berapa nominal donasi?"
       subtitle="Tentukan jumlah yang ingin anda salurkan."
     >
-      <div className="mt-6 max-w-xl">
+      <div className="mt-6">
         <div className="flex flex-wrap gap-2">
           {QUICK_AMOUNTS.map((a) => (
             <button
@@ -324,9 +326,9 @@ function NominalStep({
         )}
 
         {error && <ErrorBox message={error} />}
-
-        <ActionBar onNext={onNext} nextLabel="Lanjut ke Metode Bayar" />
       </div>
+
+      <ActionBar onNext={onNext} nextLabel="Lanjut ke Metode Bayar" />
     </StepBody>
   );
 }
@@ -364,7 +366,7 @@ function MetodeStep({
                 <div className="mb-2.5 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-parchment-3">
                   <Icon className="h-4 w-4" /> {METHOD_LABELS[method]}
                 </div>
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className={`grid gap-2.5 ${CHANNELS[method].length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
                   {CHANNELS[method].map((ch) => {
                     const active = ch.id === channelId;
                     return (

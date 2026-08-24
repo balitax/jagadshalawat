@@ -1,8 +1,9 @@
 import { Navbar } from "@/components/Navbar";
 import { Hero } from "@/components/Hero";
-import { PaymentMethods } from "@/components/PaymentMethods";
-import { DonationForm } from "@/components/DonationForm";
 import { DonationHistory } from "@/components/DonationHistory";
+import { UpcomingSchedule } from "@/components/UpcomingSchedule";
+import { LatestArticles } from "@/components/LatestArticles";
+import { PhotoGallery } from "@/components/PhotoGallery";
 import { Footer } from "@/components/Footer";
 
 export default function Page() {
@@ -11,9 +12,10 @@ export default function Page() {
       <Navbar />
       <main className="flex-1">
         <Hero />
-        <PaymentMethods />
-        <DonationForm />
+        <UpcomingSchedule />
         <DonationHistory />
+        <LatestArticles />
+        <PhotoGallery />
       </main>
       <Footer />
     </>
