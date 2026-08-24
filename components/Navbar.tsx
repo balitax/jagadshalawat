@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { ScrollLink } from "./ScrollLink";
 import { ScheduleBanner } from "./ScheduleBanner";
+import { ThemeToggle } from "./ThemeToggle";
 
 export function Navbar() {
   return (
@@ -51,6 +54,7 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           <Link
             href="/donasi"
             className="rounded-full bg-gradient-to-r from-gold-2 via-gold to-gold-3 px-6 py-2.5 text-sm font-bold text-ink shadow-lg shadow-gold/20 transition hover:shadow-xl hover:shadow-gold/30 hover:brightness-110 active:scale-95"

@@ -79,7 +79,7 @@ export function Footer() {
       </div>
 
       <div className="border-t border-gold/10 py-6 text-center text-xs text-parchment-3">
-        © {new Date().getFullYear()} Jagad Shalawat — Dibuat dengan ketulusan dan
+        © 2026 Jagad Shalawat — Dibuat dengan ketulusan dan
         amanah.
       </div>
     </footer>
