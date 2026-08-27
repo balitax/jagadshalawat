@@ -41,6 +41,7 @@ import {
   Plus,
   Heart,
   ExternalLink,
+  Target,
 } from "lucide-react";
 import { formatRupiah, formatDateTime, titleCase } from "@/lib/format";
 import { RichTextEditor } from "@/components/RichTextEditor";
@@ -63,6 +64,7 @@ const ITEMS_PER_PAGE = 10;
 const NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "donasi", label: "Donasi", icon: HandCoins },
+  { id: "campaign", label: "Campaign Donasi", icon: Target },
   { id: "jadwal", label: "Jadwal Kegiatan", icon: Clock },
   { id: "artikel", label: "Artikel & Pengumuman", icon: BookOpen },
   { id: "galeri", label: "Galeri Foto", icon: GalleryIcon },
@@ -389,6 +391,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
         <main className="flex-1 overflow-y-auto p-6 lg:p-8">
           {activeNav === "dashboard" && <DashboardPlaceholder />}
           {activeNav === "donasi" && <DonasiPage />}
+          {activeNav === "campaign" && <CampaignPage />}
           {activeNav === "jadwal" && <JadwalPage />}
           {activeNav === "artikel" && <ArtikelPage />}
           {activeNav === "galeri" && <GaleriPage />}
@@ -3465,6 +3468,342 @@ function HijriEventForm({
           <button
             onClick={save}
             disabled={busy || !title}
+            className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-gold-2 via-gold to-gold-3 px-5 py-2 text-sm font-semibold text-ink transition hover:brightness-110 disabled:opacity-60"
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Simpan
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HALAMAN CAMPAIGN DONASI
+   ═══════════════════════════════════════════════════════════ */
+
+interface CampaignItem {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  coverUrl: string | null;
+  targetAmount: number;
+  deadline: string | null;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  raisedAmount: number;
+  donorCount: number;
+}
+
+function CampaignPage() {
+  const [campaigns, setCampaigns] = useState<CampaignItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<CampaignItem | null>(null);
+
+  async function load() {
+    setLoading(true);
+    const res = await fetch("/api/admin/campaigns");
+    const data = await res.json();
+    setCampaigns(data.campaigns || []);
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function del(id: string) {
+    if (!confirm("Hapus campaign ini? Donasi yang sudah terkait akan tetap tersimpan sebagai donasi umum.")) return;
+    await fetch("/api/admin/campaigns", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    await load();
+  }
+
+  async function toggleActive(id: string, current: boolean) {
+    await fetch("/api/admin/campaigns", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, isActive: !current }),
+    });
+    await load();
+  }
+
+  return (
+    <div>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-2xl font-semibold">Campaign Donasi</h1>
+          <p className="mt-1 text-sm text-parchment-3">
+            {campaigns.length} campaign · {campaigns.filter((c) => c.isActive).length} aktif
+          </p>
+        </div>
+        <button
+          onClick={() => { setEditing(null); setShowForm(true); }}
+          className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-gold-2 via-gold to-gold-3 px-5 py-2.5 text-sm font-semibold text-ink transition hover:brightness-110"
+        >
+          <Plus className="h-4 w-4" /> Tambah Campaign
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-gold-2" />
+        </div>
+      ) : campaigns.length === 0 ? (
+        <div className="rounded-2xl border border-gold/15 py-16 text-center text-parchment-3">
+          Belum ada campaign donasi. Buat campaign pertama untuk galang dana terarah.
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {campaigns.map((c) => {
+            const pct = c.targetAmount > 0 ? Math.min(100, Math.round((c.raisedAmount / c.targetAmount) * 100)) : 0;
+            const daysLeft = c.deadline
+              ? Math.ceil((new Date(c.deadline).getTime() - new Date().getTime()) / 86400000)
+              : null;
+            return (
+              <div
+                key={c.id}
+                className={`overflow-hidden rounded-2xl border transition ${
+                  c.isActive ? "border-gold/15" : "border-gold/10 opacity-60"
+                }`}
+              >
+                {c.coverUrl && (
+                  <div className="aspect-[16/9] overflow-hidden bg-ink-2">
+                    <img src={c.coverUrl} alt={c.title} className="h-full w-full object-cover" />
+                  </div>
+                )}
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-medium text-parchment">{c.title}</h3>
+                    {!c.isActive && (
+                      <span className="shrink-0 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] text-amber-300">
+                        Nonaktif
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-3">
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-ink-3">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-gold-2 via-gold to-gold-3"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <div className="mt-1.5 flex items-center justify-between text-xs">
+                      <span className="font-semibold text-gold-2">{pct}%</span>
+                      <span className="text-parchment-3">{formatRupiah(c.targetAmount)}</span>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-xs text-parchment-3">
+                    {formatRupiah(c.raisedAmount)} terkumpul · {c.donorCount} donasi
+                    {daysLeft !== null && (daysLeft >= 0 ? ` · ${daysLeft} hari lagi` : " · berakhir")}
+                  </p>
+                  <div className="mt-3 flex gap-1.5">
+                    <button
+                      onClick={() => { setEditing(c); setShowForm(true); }}
+                      className="flex h-8 w-8 items-center justify-center rounded-full bg-gold/10 text-parchment-3 transition hover:bg-gold/15 hover:text-parchment"
+                    >
+                      <Edit3 className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => toggleActive(c.id, c.isActive)}
+                      className={`flex h-8 w-8 items-center justify-center rounded-full transition ${
+                        c.isActive
+                          ? "bg-gold/10 text-parchment-3 hover:bg-gold/15 hover:text-parchment"
+                          : "bg-amber-500/15 text-amber-300 hover:bg-amber-500/25"
+                      }`}
+                    >
+                      {c.isActive ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                    </button>
+                    <button
+                      onClick={() => del(c.id)}
+                      className="flex h-8 w-8 items-center justify-center rounded-full bg-red-500/10 text-red-300 transition hover:bg-red-500/20"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {showForm && (
+        <CampaignForm
+          campaign={editing}
+          onClose={() => { setShowForm(false); setEditing(null); }}
+          onSaved={() => { setShowForm(false); setEditing(null); load(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function CampaignForm({
+  campaign,
+  onClose,
+  onSaved,
+}: {
+  campaign: CampaignItem | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [title, setTitle] = useState(campaign?.title || "");
+  const [slug, setSlug] = useState(campaign?.slug || "");
+  const [description, setDescription] = useState(campaign?.description || "");
+  const [coverUrl, setCoverUrl] = useState(campaign?.coverUrl || "");
+  const [targetAmount, setTargetAmount] = useState(String(campaign?.targetAmount || ""));
+  const [deadline, setDeadline] = useState(campaign?.deadline || "");
+  const [sortOrder, setSortOrder] = useState(String(campaign?.sortOrder || 0));
+  const [isActive, setIsActive] = useState(campaign?.isActive ?? true);
+  const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  function autoSlug(text: string) {
+    return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  }
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch("/api/admin/upload", { method: "POST", body: formData });
+    const data = await res.json();
+    if (data.url) setCoverUrl(data.url);
+    setUploading(false);
+  }
+
+  async function save() {
+    setBusy(true);
+    const method = campaign ? "PATCH" : "POST";
+    await fetch("/api/admin/campaigns", {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: campaign?.id,
+        title,
+        slug: slug || autoSlug(title),
+        description: description || null,
+        coverUrl: coverUrl || null,
+        targetAmount: Number(targetAmount),
+        deadline: deadline || null,
+        sortOrder: Number(sortOrder),
+        isActive,
+      }),
+    });
+    setBusy(false);
+    onSaved();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="glass w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl p-6 sm:p-8" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h3 className="font-display text-xl font-semibold">{campaign ? "Edit Campaign" : "Tambah Campaign"}</h3>
+          <button onClick={onClose} className="rounded-full p-1.5 text-parchment-3 transition hover:bg-ink-2 hover:text-parchment">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="mt-6 space-y-4">
+          <div>
+            <label className="mb-1 block text-xs text-parchment-3">Judul Campaign</label>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="contoh: Renovasi Madrasah"
+              className="w-full rounded-lg border border-gold/15 bg-ink-2 px-3 py-2.5 text-sm outline-none focus:border-gold/50"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-parchment-3">Slug (untuk URL)</label>
+            <input
+              value={slug}
+              onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
+              placeholder={title ? autoSlug(title) : "contoh: renovasi-madrasah"}
+              className="w-full rounded-lg border border-gold/15 bg-ink-2 px-3 py-2.5 text-sm outline-none focus:border-gold/50"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-parchment-3">Deskripsi</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              placeholder="Ceritakan tujuan campaign ini..."
+              className="w-full resize-none rounded-lg border border-gold/15 bg-ink-2 px-3 py-2.5 text-sm outline-none focus:border-gold/50"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-parchment-3">Sampul (opsional)</label>
+            <input type="file" accept="image/*" onChange={handleUpload} className="w-full rounded-lg border border-gold/15 bg-ink-2 px-3 py-2.5 text-sm outline-none focus:border-gold/50" />
+            {uploading && <p className="mt-1 text-xs text-parchment-3">Mengunggah...</p>}
+            {coverUrl && (
+              <div className="mt-2 overflow-hidden rounded-xl">
+                <img src={coverUrl} alt="Preview" className="w-full object-cover" />
+              </div>
+            )}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs text-parchment-3">Target Dana (Rp)</label>
+              <input
+                type="number"
+                value={targetAmount}
+                onChange={(e) => setTargetAmount(e.target.value)}
+                placeholder="contoh: 50000000"
+                className="w-full rounded-lg border border-gold/15 bg-ink-2 px-3 py-2.5 text-sm outline-none focus:border-gold/50"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-parchment-3">Batas Waktu (opsional)</label>
+              <input
+                type="date"
+                value={deadline}
+                onChange={(e) => setDeadline(e.target.value)}
+                className="w-full rounded-lg border border-gold/15 bg-ink-2 px-3 py-2.5 text-sm outline-none focus:border-gold/50"
+              />
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs text-parchment-3">Urutan</label>
+              <input
+                type="number"
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+                className="w-full rounded-lg border border-gold/15 bg-ink-2 px-3 py-2.5 text-sm outline-none focus:border-gold/50"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-parchment-3">Status</label>
+              <button
+                type="button"
+                onClick={() => setIsActive(!isActive)}
+                className={`w-full rounded-lg border px-3 py-2.5 text-sm font-medium transition ${
+                  isActive
+                    ? "border-emerald-500/40 bg-emerald-js/15 text-emerald-300"
+                    : "border-amber-500/30 bg-amber-500/10 text-amber-300"
+                }`}
+              >
+                {isActive ? "Aktif" : "Nonaktif"}
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="mt-6 flex justify-end gap-2">
+          <button onClick={onClose} className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 px-4 py-2 text-sm text-parchment transition hover:bg-gold/10">
+            <X className="h-4 w-4" /> Batal
+          </button>
+          <button
+            onClick={save}
+            disabled={busy || !title || !targetAmount || Number(targetAmount) <= 0}
             className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-gold-2 via-gold to-gold-3 px-5 py-2 text-sm font-semibold text-ink transition hover:brightness-110 disabled:opacity-60"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}

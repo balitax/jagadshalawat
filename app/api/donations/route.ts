@@ -1,7 +1,7 @@
 import { saveReceipt } from "@/lib/upload";
 import { getChannel } from "@/lib/payment-server";
 import { db } from "@/db";
-import { donations } from "@/db/schema";
+import { donations, campaigns } from "@/db/schema";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 
@@ -16,6 +16,7 @@ export async function POST(request: Request) {
     const message = formData.get("message");
     const anonymousRaw = formData.get("anonymous");
     const receipt = formData.get("receipt");
+    const campaignIdRaw = formData.get("campaignId");
 
     if (!amountRaw || !methodRaw || !channelRaw) {
       return NextResponse.json(
@@ -59,6 +60,16 @@ export async function POST(request: Request) {
       receiptUrl = await saveReceipt(receipt);
     }
 
+    let campaignId: string | null = null;
+    if (campaignIdRaw && String(campaignIdRaw)) {
+      const [campaign] = await db
+        .select()
+        .from(campaigns)
+        .where(eq(campaigns.id, String(campaignIdRaw)))
+        .limit(1);
+      if (campaign && campaign.isActive) campaignId = campaign.id;
+    }
+
     const [donation] = await db
       .insert(donations)
       .values({
@@ -67,6 +78,7 @@ export async function POST(request: Request) {
         amount,
         method,
         channel: channel.bankPrefix ?? channel.id,
+        campaignId,
         message: String(message ?? "").trim().slice(0, 300) || null,
         receiptUrl,
         status: "pending",

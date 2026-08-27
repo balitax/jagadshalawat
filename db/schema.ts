@@ -20,6 +20,25 @@ export interface ContentPart {
   translation?: string;
 }
 
+/* ─── Campaigns (Campaign Donasi) ─── */
+export const campaigns = pgTable("campaigns", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  description: text("description"),
+  coverUrl: text("cover_url"),
+  targetAmount: bigint("target_amount", { mode: "number" }).notNull(),
+  deadline: date("deadline"),
+  isActive: boolean("is_active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type Campaign = typeof campaigns.$inferSelect;
+export type NewCampaign = typeof campaigns.$inferInsert;
+
 /* ─── Donations ─── */
 export const donations = pgTable("donations", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -30,6 +49,7 @@ export const donations = pgTable("donations", {
     enum: ["bank_transfer", "emoney", "va"],
   }).notNull(),
   channel: text("channel").notNull(),
+  campaignId: uuid("campaign_id").references(() => campaigns.id),
   message: text("message"),
   receiptUrl: text("receipt_url"),
   status: text("status", {

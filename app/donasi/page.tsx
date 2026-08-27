@@ -1,5 +1,7 @@
 import { Metadata } from "next";
+import { Suspense } from "react";
 import { Navbar } from "@/components/Navbar";
+import { CampaignSection } from "@/components/CampaignSection";
 import { DonationForm } from "@/components/DonationForm";
 import { Footer } from "@/components/Footer";
 
@@ -13,7 +15,10 @@ export default function DonasiPage() {
     <>
       <Navbar />
       <main className="flex-1">
-        <DonationForm />
+        <Suspense>
+          <DonationForm />
+        </Suspense>
+        <CampaignSection />
       </main>
       <Footer />
     </>

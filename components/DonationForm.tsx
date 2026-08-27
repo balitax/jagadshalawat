@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useMemo, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Check,
   ChevronLeft,
@@ -15,11 +16,20 @@ import {
   Loader2,
   Heart,
   Receipt,
+  Target,
 } from "lucide-react";
 import { METHOD_LABELS, MethodType, PaymentChannel } from "@/lib/payment";
 import { formatRupiah } from "@/lib/format";
 import { SectionHeader } from "./SectionHeader";
 import { CornerBrackets } from "./CornerBrackets";
+
+interface CampaignItem {
+  id: string;
+  title: string;
+  slug: string;
+  targetAmount: number;
+  raisedAmount: number;
+}
 
 const QUICK_AMOUNTS = [25000, 50000, 100000, 250000, 500000, 1000000];
 
@@ -36,12 +46,15 @@ const TYPE_ICONS: Record<MethodType, typeof Landmark> = {
 };
 
 export function DonationForm() {
+  const searchParams = useSearchParams();
   const [step, setStep] = useState(0);
   const [amount, setAmount] = useState<number>(0);
   const [amountInput, setAmountInput] = useState("");
   const [channels, setChannels] = useState<PaymentChannel[]>([]);
   const [channelsLoading, setChannelsLoading] = useState(true);
   const [channelId, setChannelId] = useState("");
+  const [campaigns, setCampaigns] = useState<CampaignItem[]>([]);
+  const [campaignId, setCampaignId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [anonymous, setAnonymous] = useState(false);
   const [message, setMessage] = useState("");
@@ -62,6 +75,27 @@ export function DonationForm() {
       .catch(() => {})
       .finally(() => setChannelsLoading(false));
   }, []);
+
+  useEffect(() => {
+    fetch("/api/campaigns")
+      .then((res) => res.json())
+      .then((data) => {
+        const list: CampaignItem[] = data.campaigns || [];
+        setCampaigns(list);
+        const slug = searchParams.get("campaign");
+        if (slug) {
+          const match = list.find((c) => c.slug === slug);
+          if (match) setCampaignId(match.id);
+        }
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const campaign = useMemo(
+    () => campaigns.find((c) => c.id === campaignId),
+    [campaigns, campaignId]
+  );
 
   const channel = useMemo(
     () => channels.find((c) => c.id === channelId),
@@ -140,6 +174,7 @@ export function DonationForm() {
     formData.append("name", name);
     formData.append("message", message);
     formData.append("anonymous", String(anonymous));
+    if (campaignId) formData.append("campaignId", campaignId);
     if (file) formData.append("receipt", file);
 
     try {
@@ -225,7 +260,12 @@ export function DonationForm() {
           <div className="p-6 sm:p-8">
             <div key={status === "success" ? "success" : step} className="animate-step">
             {status === "success" ? (
-              <SuccessPanel amount={amount} channelLabel={channel?.name ?? ""} onReset={reset} />
+              <SuccessPanel
+                amount={amount}
+                channelLabel={channel?.name ?? ""}
+                campaignTitle={campaign?.title}
+                onReset={reset}
+              />
             ) : step === 0 ? (
               <NominalStep
                 amount={amount}
@@ -234,6 +274,9 @@ export function DonationForm() {
                 onPickAmount={onPickAmount}
                 onNext={next}
                 error={error}
+                campaigns={campaigns}
+                campaignId={campaignId}
+                setCampaignId={setCampaignId}
               />
             ) : step === 1 ? (
               <MetodeStep
@@ -250,6 +293,7 @@ export function DonationForm() {
             ) : (
               <KonfirmasiStep
                 amount={amount}
+                campaignTitle={campaign?.title}
                 channelName={channel?.name ?? ""}
                 reference={channel?.reference ?? ""}
                 holder={channel?.holder ?? ""}
@@ -306,6 +350,9 @@ function NominalStep({
   onPickAmount,
   onNext,
   error,
+  campaigns,
+  campaignId,
+  setCampaignId,
 }: {
   amount: number;
   amountInput: string;
@@ -313,6 +360,9 @@ function NominalStep({
   onPickAmount: (v: number) => void;
   onNext: () => void;
   error: string;
+  campaigns: CampaignItem[];
+  campaignId: string | null;
+  setCampaignId: (id: string | null) => void;
 }) {
   return (
     <StepBody
@@ -320,6 +370,43 @@ function NominalStep({
       title="Berapa nominal donasi?"
       subtitle="Tentukan jumlah yang ingin anda salurkan."
     >
+      {campaigns.length > 0 && (
+        <div className="mt-6">
+          <p className="mb-2 text-sm font-medium text-parchment-2">Tujuan donasi</p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setCampaignId(null)}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-medium transition ${
+                campaignId === null
+                  ? "border-gold bg-gold/15 text-gold-2"
+                  : "border-gold/15 text-parchment-2 hover:border-gold/40"
+              }`}
+            >
+              <Heart className="h-3.5 w-3.5" /> Donasi Umum
+            </button>
+            {campaigns.map((c) => {
+              const pct = c.targetAmount > 0 ? Math.min(100, Math.round((c.raisedAmount / c.targetAmount) * 100)) : 0;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setCampaignId(c.id)}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-medium transition ${
+                    campaignId === c.id
+                      ? "border-gold bg-gold/15 text-gold-2"
+                      : "border-gold/15 text-parchment-2 hover:border-gold/40"
+                  }`}
+                >
+                  <Target className="h-3.5 w-3.5" /> {c.title}
+                  <span className="text-xs opacity-70">({pct}%)</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="mt-6">
         <div className="flex flex-wrap gap-2">
           {QUICK_AMOUNTS.map((a) => (
@@ -526,6 +613,7 @@ function MetodeStep({
 /* ---------- Step 3: Detail donor & konfirmasi ---------- */
 function KonfirmasiStep({
   amount,
+  campaignTitle,
   channelName,
   reference,
   holder,
@@ -546,6 +634,7 @@ function KonfirmasiStep({
   error,
 }: {
   amount: number;
+  campaignTitle?: string;
   channelName: string;
   reference: string;
   holder: string;
@@ -579,6 +668,10 @@ function KonfirmasiStep({
             <div className="flex justify-between">
               <dt className="text-parchment-3">Nominal</dt>
               <dd className="font-semibold text-gold-2">{formatRupiah(amount)}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-parchment-3">Tujuan</dt>
+              <dd className="text-parchment">{campaignTitle || "Donasi Umum"}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-parchment-3">Kanal</dt>
@@ -695,10 +788,12 @@ function KonfirmasiStep({
 function SuccessPanel({
   amount,
   channelLabel,
+  campaignTitle,
   onReset,
 }: {
   amount: number;
   channelLabel: string;
+  campaignTitle?: string;
   onReset: () => void;
 }) {
   return (
@@ -711,7 +806,14 @@ function SuccessPanel({
       </h3>
       <p className="mt-2 max-w-md text-sm text-parchment-2">
         Donasi <span className="font-semibold text-gold-2">{formatRupiah(amount)}</span> via{" "}
-        {channelLabel} telah tercatat. Riwayat akan muncul di bawah setelah
+        {channelLabel}
+        {campaignTitle && (
+          <>
+            {" "}
+            untuk <span className="font-semibold text-gold-2">{campaignTitle}</span>
+          </>
+        )}{" "}
+        telah tercatat. Riwayat akan muncul di bawah setelah
         diverifikasi oleh pengurus.
       </p>
       <button
