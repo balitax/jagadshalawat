@@ -7,7 +7,10 @@ import { ThemeToggle } from "./ThemeToggle";
 
 export function Navbar() {
   return (
-    <header className="sticky top-0 z-40 border-b border-gold/10 bg-ink/80 backdrop-blur-2xl">
+    <header
+      id="site-navbar"
+      className="sticky top-0 z-40 border-b border-gold/10 bg-ink/80 backdrop-blur-2xl"
+    >
       <ScheduleBanner />
       <div className="gold-line h-px w-full opacity-40" />
       <nav className="shell flex items-center justify-between py-4">

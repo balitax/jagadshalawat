@@ -4,7 +4,10 @@ import { GreenOrnament } from "./GreenOrnament";
 
 export function Footer() {
   return (
-    <footer className="relative border-t border-gold/10 bg-ink-2/60 backdrop-blur">
+    <footer
+      id="site-footer"
+      className="relative border-t border-gold/10 bg-ink-2/60 backdrop-blur"
+    >
       <div className="gold-line h-px w-full opacity-50" />
 
       <div className="shell py-16">

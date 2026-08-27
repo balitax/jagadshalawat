@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Inter } from "next/font/google";
+import { Cormorant_Garamond, Inter, Amiri } from "next/font/google";
 import "./globals.css";
 import { RevealObserver } from "@/components/RevealObserver";
 import { DevServiceWorkerCleanup } from "@/components/DevServiceWorkerCleanup";
@@ -17,6 +17,12 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+const amiri = Amiri({
+  variable: "--font-amiri",
+  subsets: ["arabic", "latin"],
+  weight: ["400", "700"],
+});
+
 export const metadata: Metadata = {
   title: "Jagad Shalawat — Komunitas Dzikir & Shalawat",
   description:
@@ -28,7 +34,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="id"
       data-theme="dark"
-      className={`${cormorant.variable} ${inter.variable} h-full antialiased`}
+      suppressHydrationWarning
+      className={`${cormorant.variable} ${inter.variable} ${amiri.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-ink text-parchment">
         <script

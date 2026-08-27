@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   FloatingAppButton,
   PrayerIcon,
@@ -14,9 +15,10 @@ import { DoaHarian } from "@/components/DoaHarian";
 import { ZakatCalculator } from "@/components/ZakatCalculator";
 import { JadwalSholat } from "@/components/JadwalSholat";
 
-type AppType = "jadwal" | "zakat" | "quran" | "doa" | "hijriah" | null;
+type AppType = "jadwal" | "zakat" | "doa" | "hijriah" | null;
 
 export function FloatingApps() {
+  const router = useRouter();
   const [activeApp, setActiveApp] = useState<AppType>(null);
 
   const toggleApp = (app: AppType) => {
@@ -43,7 +45,7 @@ export function FloatingApps() {
           icon={<QuranIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
           label="Alquran"
           color="emerald"
-          onClick={() => toggleApp("quran")}
+          onClick={() => router.push("/quran")}
         />
 
         <FloatingAppButton
@@ -81,31 +83,6 @@ export function FloatingApps() {
         isOpen={activeApp === "zakat"}
         onClose={() => setActiveApp(null)}
       />
-
-      {/* ─── Alquran ─── */}
-      {activeApp === "quran" && (
-        <div className="fixed bottom-24 right-6 z-50 w-[calc(100%-3rem)] max-w-sm sm:bottom-28 sm:right-8">
-          <div className="rounded-3xl border border-gold/20 bg-ink-2/95 p-6 shadow-2xl backdrop-blur-xl">
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <QuranIcon className="h-5 w-5 text-emerald-js" />
-                <h3 className="font-display text-lg font-bold text-gradient-gold">
-                  Alquran
-                </h3>
-              </div>
-              <button
-                onClick={() => setActiveApp(null)}
-                className="flex h-7 w-7 items-center justify-center rounded-full bg-gold/10 text-parchment-3 transition hover:bg-gold/20 hover:text-parchment"
-              >
-                ✕
-              </button>
-            </div>
-            <p className="text-sm text-parchment-2">
-              Mini app Alquran akan segera hadir...
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* ─── Doa Harian ─── */}
       <DoaHarian isOpen={activeApp === "doa"} onClose={() => setActiveApp(null)} />
