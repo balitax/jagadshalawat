@@ -491,6 +491,25 @@ export function HijriCalendar({ isOpen, onClose }: HijriCalendarProps) {
             </div>
           )}
         </div>
+
+        {/* ── Footer ── */}
+        <div className="flex shrink-0 gap-2 border-t border-gold/10 bg-ink-2/50 px-4 py-3">
+          <button
+            onClick={goToday}
+            className="flex h-10 items-center justify-center gap-1.5 rounded-xl bg-gold/10 px-4 text-sm font-medium text-parchment-3 transition hover:bg-gold/15 hover:text-parchment"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+            </svg>
+            Hari Ini
+          </button>
+          <button
+            onClick={onClose}
+            className="flex h-10 flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-gold-2 via-gold to-gold-3 text-sm font-semibold text-ink shadow-lg shadow-gold/20 transition hover:shadow-xl hover:shadow-gold/30 active:scale-[0.98]"
+          >
+            Selesai
+          </button>
+        </div>
       </div>
     </div>
   );

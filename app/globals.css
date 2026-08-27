@@ -26,18 +26,18 @@
 }
 
 html[data-theme="light"] {
-  --color-ink: #faf8f3;
-  --color-ink-2: #f2efe6;
-  --color-ink-3: #e8e4d8;
+  --color-ink: #f7f4ed;
+  --color-ink-2: #ede9de;
+  --color-ink-3: #d8d2c1;
   --color-parchment: #1a1814;
-  --color-parchment-2: #3d3a30;
-  --color-parchment-3: #6b6657;
-  --color-gold: #a07820;
-  --color-gold-2: #8a6618;
-  --color-gold-3: #c49a2c;
-  --color-emerald-js: #157a52;
-  --color-emerald-js-2: #10603f;
-  --color-emerald-js-3: #0a4a30;
+  --color-parchment-2: #3a372e;
+  --color-parchment-3: #5c5848;
+  --color-gold: #8a6810;
+  --color-gold-2: #7a5a0e;
+  --color-gold-3: #b08a20;
+  --color-emerald-js: #0f6a48;
+  --color-emerald-js-2: #0a5238;
+  --color-emerald-js-3: #064028;
 }
 
 html[data-theme="light"] body {
@@ -94,6 +94,18 @@ html[data-theme="light"] .bg-gold\/15 {
 
 html[data-theme="light"] .bg-gold\/10 {
   background-color: rgba(160, 120, 32, 0.12);
+}
+
+html[data-theme="light"] .from-emerald-js {
+  background-color: #0f6a48;
+}
+
+html[data-theme="light"] .to-emerald-js-2 {
+  background-color: #0a5238;
+}
+
+html[data-theme="light"] .shadow-emerald-js\/20 {
+  --tw-shadow-color: rgba(15, 106, 72, 0.25);
 }
 
 @layer base {

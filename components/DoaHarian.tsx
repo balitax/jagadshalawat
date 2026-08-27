@@ -154,7 +154,7 @@ export function DoaHarian({ isOpen, onClose }: DoaHarianProps) {
               onClick={() => handleTabChange("doa")}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 text-sm font-medium transition-all ${
                 activeTab === "doa"
-                  ? "bg-amber-500/20 text-amber-200 shadow-sm shadow-amber-500/10"
+                  ? "bg-gold/15 text-gold-2 shadow-sm"
                   : "text-parchment-3 hover:bg-gold/5 hover:text-parchment"
               }`}
             >
@@ -415,6 +415,16 @@ export function DoaHarian({ isOpen, onClose }: DoaHarianProps) {
               )}
             </div>
           )}
+        </div>
+
+        {/* ── Footer ── */}
+        <div className="flex shrink-0 gap-2 border-t border-gold/10 bg-ink-2/50 px-4 py-3">
+          <button
+            onClick={onClose}
+            className="flex h-10 flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-gold-2 via-gold to-gold-3 text-sm font-semibold text-ink shadow-lg shadow-gold/20 transition hover:shadow-xl hover:shadow-gold/30 active:scale-[0.98]"
+          >
+            Selesai
+          </button>
         </div>
       </div>
     </div>
