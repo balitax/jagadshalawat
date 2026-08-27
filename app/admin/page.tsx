@@ -43,6 +43,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { formatRupiah, formatDateTime, titleCase } from "@/lib/format";
+import { RichTextEditor } from "@/components/RichTextEditor";
 
 interface Donation {
   id: string;
@@ -66,6 +67,8 @@ const NAV_ITEMS = [
   { id: "artikel", label: "Artikel & Pengumuman", icon: BookOpen },
   { id: "galeri", label: "Galeri Foto", icon: GalleryIcon },
   { id: "doawirid", label: "Doa & Wirid", icon: BookOpen },
+  { id: "kanaldonasi", label: "Kanal Donasi", icon: CreditCard },
+  { id: "hijriah", label: "Hari Penting Hijriah", icon: Moon },
 ] as const;
 
 type NavId = (typeof NAV_ITEMS)[number]["id"];
@@ -111,7 +114,7 @@ function FilterDropdown({
         <ChevronDown className={`h-4 w-4 shrink-0 text-parchment-3 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
-        <div className="absolute left-0 z-30 mt-1.5 w-full min-w-[180px] overflow-hidden rounded-xl border border-gold/15 bg-ink-2 shadow-xl shadow-black/30">
+        <div className="absolute left-0 z-30 mt-1.5 max-h-72 w-full min-w-[180px] overflow-y-auto rounded-xl border border-gold/15 bg-ink-2 shadow-xl shadow-black/30">
           {options.map((opt) => (
             <button
               key={opt.value}
@@ -390,6 +393,8 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
           {activeNav === "artikel" && <ArtikelPage />}
           {activeNav === "galeri" && <GaleriPage />}
           {activeNav === "doawirid" && <DoaWiridPage />}
+          {activeNav === "kanaldonasi" && <PaymentChannelsPage />}
+          {activeNav === "hijriah" && <HijriEventsPage />}
         </main>
       </div>
     </div>
@@ -1709,7 +1714,7 @@ function ArticleForm({
           </div>
           <div>
             <label className="mb-1 block text-xs text-parchment-3">Konten</label>
-            <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={10} className="w-full rounded-lg border border-gold/15 bg-ink-2 px-3 py-2.5 text-sm outline-none focus:border-gold/50" />
+            <RichTextEditor value={content} onChange={setContent} />
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             <div>
@@ -2046,12 +2051,13 @@ function DoaWiridPage() {
   const [activeTab, setActiveTab] = useState<"doa" | "wirid">("doa");
   const [categories, setCategories] = useState<DoaWiridCategory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [showItemForm, setShowItemForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState<DoaWiridCategory | null>(null);
   const [editingItem, setEditingItem] = useState<DoaWiridItem | null>(null);
   const [search, setSearch] = useState("");
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [page, setPage] = useState(1);
 
   const apiBase = activeTab === "doa" ? "/api/admin/doa" : "/api/admin/wirid";
 
@@ -2065,9 +2071,14 @@ function DoaWiridPage() {
 
   useEffect(() => {
     load();
-    setSelectedCategory(null);
     setSearch("");
+    setFilterCategory("all");
+    setPage(1);
   }, [activeTab]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, filterCategory]);
 
   async function deleteCategory(id: string) {
     if (!confirm("Hapus kategori beserta semua item di dalamnya?")) return;
@@ -2076,7 +2087,7 @@ function DoaWiridPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type: "category", id }),
     });
-    setSelectedCategory(null);
+    if (filterCategory === id) setFilterCategory("all");
     await load();
   }
 
@@ -2090,27 +2101,36 @@ function DoaWiridPage() {
     await load();
   }
 
-  const selectedCat = categories.find((c) => c.id === selectedCategory);
+  const allItems = useMemo(
+    () =>
+      categories.flatMap((c) =>
+        c.items.map((item) => ({ ...item, categoryName: c.name }))
+      ),
+    [categories]
+  );
 
-  const filteredCategories = categories.filter((c) => {
-    if (!search) return true;
+  const filteredItems = useMemo(() => {
     const q = search.toLowerCase();
-    return (
-      c.name.toLowerCase().includes(q) ||
-      c.items.some((i) => i.title.toLowerCase().includes(q))
-    );
-  });
-
-  const filteredItems = selectedCat?.items.filter((i) => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return (
-      i.title.toLowerCase().includes(q) ||
-      i.translation.toLowerCase().includes(q)
-    );
-  });
+    return allItems.filter((i) => {
+      const matchSearch =
+        !search ||
+        i.title.toLowerCase().includes(q) ||
+        i.translation.toLowerCase().includes(q);
+      const matchCategory = filterCategory === "all" || i.categoryId === filterCategory;
+      return matchSearch && matchCategory;
+    });
+  }, [allItems, search, filterCategory]);
 
   const totalItems = categories.reduce((s, c) => s + c.items.length, 0);
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE));
+  const safePage = Math.min(page, totalPages);
+  const paginated = filteredItems.slice(
+    (safePage - 1) * ITEMS_PER_PAGE,
+    safePage * ITEMS_PER_PAGE
+  );
+
+  const defaultNewItemCategoryId =
+    filterCategory !== "all" ? filterCategory : categories[0]?.id || "";
 
   return (
     <div>
@@ -2122,22 +2142,14 @@ function DoaWiridPage() {
             {categories.length} kategori · {totalItems} bacaan
           </p>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => { setEditingCategory(null); setShowCategoryForm(true); }}
-            className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-ink-2 px-4 py-2.5 text-sm font-medium text-parchment transition hover:bg-gold/10"
-          >
-            <Plus className="h-4 w-4" /> Kategori
-          </button>
-          {selectedCategory && (
-            <button
-              onClick={() => { setEditingItem(null); setShowItemForm(true); }}
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-gold-2 via-gold to-gold-3 px-5 py-2.5 text-sm font-semibold text-ink transition hover:brightness-110"
-            >
-              <Plus className="h-4 w-4" /> Tambah Bacaan
-            </button>
-          )}
-        </div>
+        <button
+          onClick={() => { setEditingItem(null); setShowItemForm(true); }}
+          disabled={categories.length === 0}
+          title={categories.length === 0 ? "Tambah kategori terlebih dahulu" : undefined}
+          className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-gold-2 via-gold to-gold-3 px-5 py-2.5 text-sm font-semibold text-ink transition hover:brightness-110 disabled:opacity-50"
+        >
+          <Plus className="h-4 w-4" /> Tambah Bacaan
+        </button>
       </div>
 
       {/* Tabs */}
@@ -2164,138 +2176,168 @@ function DoaWiridPage() {
         </button>
       </div>
 
-      {/* Search */}
-      <div className="mb-4">
-        <div className="relative">
+      {/* Category chips — click to filter, hover to edit/delete */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => setFilterCategory("all")}
+          className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+            filterCategory === "all"
+              ? "bg-gold/15 text-gold-2 ring-1 ring-gold/30"
+              : "bg-ink-2 text-parchment-3 hover:bg-ink-3 hover:text-parchment"
+          }`}
+        >
+          Semua Kategori ({totalItems})
+        </button>
+        {categories.map((cat) => (
+          <div
+            key={cat.id}
+            className={`group flex items-center rounded-full pl-3 pr-1 text-xs transition ${
+              filterCategory === cat.id
+                ? "bg-gold/15 text-gold-2 ring-1 ring-gold/30"
+                : "bg-ink-2 text-parchment-3 hover:bg-ink-3 hover:text-parchment"
+            }`}
+          >
+            <button
+              onClick={() => setFilterCategory(cat.id)}
+              className="py-1.5 font-medium"
+            >
+              {cat.name} ({cat.items.length})
+            </button>
+            <span className="ml-1 flex items-center gap-0.5 opacity-0 transition group-hover:opacity-100">
+              <button
+                onClick={() => { setEditingCategory(cat); setShowCategoryForm(true); }}
+                className="rounded-full p-1.5 hover:bg-gold/10 hover:text-parchment"
+              >
+                <Edit3 className="h-3 w-3" />
+              </button>
+              <button
+                onClick={() => deleteCategory(cat.id)}
+                className="rounded-full p-1.5 text-red-300 hover:bg-red-500/10"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </span>
+          </div>
+        ))}
+        <button
+          onClick={() => { setEditingCategory(null); setShowCategoryForm(true); }}
+          className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-gold/30 px-3 py-1.5 text-xs font-medium text-parchment-3 transition hover:border-gold/50 hover:text-parchment"
+        >
+          <Plus className="h-3 w-3" /> Kategori
+        </button>
+      </div>
+
+      {/* Search & Filter */}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-parchment-3" />
           <input
             type="text"
-            placeholder={selectedCategory ? "Cari bacaan..." : "Cari kategori atau bacaan..."}
+            placeholder="Cari judul atau terjemahan..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-xl border border-gold/15 bg-ink-2 py-2.5 pl-10 pr-4 text-sm outline-none transition placeholder:text-parchment-3 focus:border-gold/50"
           />
         </div>
+        <FilterDropdown
+          value={filterCategory}
+          onChange={setFilterCategory}
+          icon={<BookOpen className="h-4 w-4" />}
+          options={[
+            { value: "all", label: "Semua Kategori" },
+            ...categories.map((c) => ({ value: c.id, label: c.name })),
+          ]}
+        />
       </div>
 
-      {/* Content */}
+      {/* Items List */}
       {loading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="h-6 w-6 animate-spin text-gold-2" />
         </div>
-      ) : selectedCategory && selectedCat ? (
-        /* Items List */
-        <div>
-          <button
-            onClick={() => setSelectedCategory(null)}
-            className="mb-4 inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-parchment-3 transition hover:bg-ink-2 hover:text-parchment"
-          >
-            <ChevronLeft className="h-4 w-4" /> Kembali ke Kategori
-          </button>
-
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-display text-xl font-semibold text-parchment">{selectedCat.name}</h2>
-            <span className="rounded-full bg-ink-2 px-3 py-1 text-xs text-parchment-3">
-              {filteredItems?.length || 0} bacaan
-            </span>
-          </div>
-
-          <div className="space-y-3">
-            {filteredItems && filteredItems.length > 0 ? (
-              filteredItems.map((item, i) => (
-                <div
-                  key={item.id}
-                  className="rounded-2xl border border-gold/15 bg-ink-2/40 p-4 transition hover:border-gold/30"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-gold/10 text-[11px] font-bold text-gold-2">
-                          {i + 1}
-                        </span>
-                        <h3 className="font-medium text-parchment">{item.title}</h3>
-                      </div>
-                      <p
-                        dir="rtl"
-                        className="mt-2 truncate text-right text-sm leading-relaxed text-amber-200/50"
-                        style={{ fontFamily: "'Amiri', 'Scheherazade New', serif" }}
-                      >
-                        {item.arab.slice(0, 120)}{item.arab.length > 120 ? "..." : ""}
-                      </p>
-                      {item.translation && (
-                        <p className="mt-1.5 line-clamp-2 text-xs text-parchment-3">{item.translation}</p>
-                      )}
-                    </div>
-                    <div className="flex shrink-0 gap-1.5">
-                      <button
-                        onClick={() => { setEditingItem(item); setShowItemForm(true); }}
-                        className="inline-flex items-center gap-1 rounded-full border border-gold/30 px-2.5 py-1 text-[11px] font-medium text-parchment transition hover:bg-gold/10"
-                      >
-                        <Edit3 className="h-3 w-3" />
-                      </button>
-                      <button
-                        onClick={() => deleteItem(item.id)}
-                        className="inline-flex items-center gap-1 rounded-full border border-red-500/40 px-2.5 py-1 text-[11px] font-medium text-red-300 transition hover:bg-red-500/10"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="rounded-2xl border border-gold/15 py-12 text-center text-parchment-3">
-                {search ? `Tidak ditemukan untuk "${search}"` : "Belum ada bacaan."}
-              </div>
-            )}
-          </div>
-        </div>
       ) : (
-        /* Categories List */
         <div className="space-y-3">
-          {filteredCategories.length > 0 ? (
-            filteredCategories.map((cat) => (
+          {paginated.length > 0 ? (
+            paginated.map((item, i) => (
               <div
-                key={cat.id}
-                className="group flex items-center gap-4 rounded-2xl border border-gold/15 bg-ink-2/40 p-4 transition hover:border-gold/30"
+                key={item.id}
+                className="rounded-2xl border border-gold/15 bg-ink-2/40 p-4 transition hover:border-gold/30"
               >
-                <button
-                  onClick={() => { setSelectedCategory(cat.id); setSearch(""); }}
-                  className="flex min-w-0 flex-1 items-center gap-4 text-left"
-                >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gold/10">
-                    <BookOpen className="h-5 w-5 text-gold-2" />
-                  </div>
+                <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-parchment">{cat.name}</p>
-                    <p className="text-xs text-parchment-3">{cat.items.length} bacaan</p>
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-gold/10 text-[11px] font-bold text-gold-2">
+                        {(safePage - 1) * ITEMS_PER_PAGE + i + 1}
+                      </span>
+                      <h3 className="font-medium text-parchment">{item.title}</h3>
+                      <span className="rounded-full bg-gold/10 px-2 py-0.5 text-[10px] text-gold-2">
+                        {item.categoryName}
+                      </span>
+                    </div>
+                    <p
+                      dir="rtl"
+                      className="mt-2 truncate text-right text-sm leading-relaxed text-amber-200/50"
+                      style={{ fontFamily: "'Amiri', 'Scheherazade New', serif" }}
+                    >
+                      {item.arab.slice(0, 120)}{item.arab.length > 120 ? "..." : ""}
+                    </p>
+                    {item.translation && (
+                      <p className="mt-1.5 line-clamp-2 text-xs text-parchment-3">{item.translation}</p>
+                    )}
                   </div>
-                  <span className="rounded-full bg-gold/10 px-2.5 py-1 text-xs font-medium text-gold-2">
-                    {cat.items.length}
-                  </span>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-parchment-3" />
-                </button>
-                <div className="flex shrink-0 gap-1.5 opacity-0 transition group-hover:opacity-100">
-                  <button
-                    onClick={() => { setEditingCategory(cat); setShowCategoryForm(true); }}
-                    className="inline-flex items-center gap-1 rounded-full border border-gold/30 px-2.5 py-1 text-[11px] font-medium text-parchment transition hover:bg-gold/10"
-                  >
-                    <Edit3 className="h-3 w-3" />
-                  </button>
-                  <button
-                    onClick={() => deleteCategory(cat.id)}
-                    className="inline-flex items-center gap-1 rounded-full border border-red-500/40 px-2.5 py-1 text-[11px] font-medium text-red-300 transition hover:bg-red-500/10"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
+                  <div className="flex shrink-0 gap-1.5">
+                    <button
+                      onClick={() => { setEditingItem(item); setShowItemForm(true); }}
+                      className="inline-flex items-center gap-1 rounded-full border border-gold/30 px-2.5 py-1 text-[11px] font-medium text-parchment transition hover:bg-gold/10"
+                    >
+                      <Edit3 className="h-3 w-3" />
+                    </button>
+                    <button
+                      onClick={() => deleteItem(item.id)}
+                      className="inline-flex items-center gap-1 rounded-full border border-red-500/40 px-2.5 py-1 text-[11px] font-medium text-red-300 transition hover:bg-red-500/10"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))
           ) : (
             <div className="rounded-2xl border border-gold/15 py-12 text-center text-parchment-3">
-              {search ? `Tidak ditemukan untuk "${search}"` : "Belum ada kategori."}
+              {search || filterCategory !== "all"
+                ? "Tidak ada bacaan yang cocok."
+                : "Belum ada bacaan. Tambahkan kategori lalu bacaan pertama."}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {filteredItems.length > 0 && (
+        <div className="mt-4 flex items-center justify-between text-sm text-parchment-3">
+          <span>
+            Menampilkan {(safePage - 1) * ITEMS_PER_PAGE + 1}–
+            {Math.min(safePage * ITEMS_PER_PAGE, filteredItems.length)} dari {filteredItems.length}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={safePage === 1}
+              className="inline-flex items-center gap-1 rounded-full border border-gold/20 px-3 py-1.5 text-xs font-medium text-parchment transition hover:bg-gold/10 disabled:opacity-40 disabled:hover:bg-transparent"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" /> Prev
+            </button>
+            <span className="text-xs text-parchment-2">
+              {safePage} / {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safePage === totalPages}
+              className="inline-flex items-center gap-1 rounded-full border border-gold/20 px-3 py-1.5 text-xs font-medium text-parchment transition hover:bg-gold/10 disabled:opacity-40 disabled:hover:bg-transparent"
+            >
+              Next <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       )}
 
@@ -2310,10 +2352,11 @@ function DoaWiridPage() {
       )}
 
       {/* Item Form Modal */}
-      {showItemForm && selectedCategory && (
+      {showItemForm && (
         <DoaWiridItemForm
           apiBase={apiBase}
-          categoryId={selectedCategory}
+          categoryId={editingItem?.categoryId || defaultNewItemCategoryId}
+          categories={categories}
           item={editingItem}
           onClose={() => { setShowItemForm(false); setEditingItem(null); }}
           onSaved={() => { setShowItemForm(false); setEditingItem(null); load(); }}
@@ -2426,16 +2469,19 @@ interface ContentPartItem {
 function DoaWiridItemForm({
   apiBase,
   categoryId,
+  categories,
   item,
   onClose,
   onSaved,
 }: {
   apiBase: string;
   categoryId: string;
+  categories: DoaWiridCategory[];
   item: DoaWiridItem | null;
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const [selectedCategoryId, setSelectedCategoryId] = useState(item?.categoryId || categoryId);
   const [title, setTitle] = useState(item?.title || "");
   const [arab, setArab] = useState(item?.arab || "");
   const [latin, setLatin] = useState(item?.latin || "");
@@ -2538,7 +2584,7 @@ function DoaWiridItemForm({
       body: JSON.stringify({
         type: "item",
         id: item?.id,
-        categoryId,
+        categoryId: selectedCategoryId,
         title,
         arab: finalArab,
         latin: finalLatin,
@@ -2569,6 +2615,16 @@ function DoaWiridItemForm({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="contoh: Ratib al-Haddad"
               className="w-full rounded-lg border border-gold/15 bg-ink-2 px-3 py-2.5 text-sm outline-none focus:border-gold/50"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs text-parchment-3">Kategori</label>
+            <FilterDropdown
+              value={selectedCategoryId}
+              onChange={setSelectedCategoryId}
+              icon={<BookOpen className="h-4 w-4" />}
+              options={categories.map((c) => ({ value: c.id, label: c.name }))}
             />
           </div>
 
@@ -2832,7 +2888,585 @@ function DoaWiridItemForm({
           <button onClick={onClose} className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 px-4 py-2 text-sm text-parchment transition hover:bg-gold/10">
             <X className="h-4 w-4" /> Batal
           </button>
-          <button onClick={save} disabled={busy || !title} className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-gold-2 via-gold to-gold-3 px-5 py-2 text-sm font-semibold text-ink transition hover:brightness-110 disabled:opacity-60">
+          <button onClick={save} disabled={busy || !title || !selectedCategoryId} className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-gold-2 via-gold to-gold-3 px-5 py-2 text-sm font-semibold text-ink transition hover:brightness-110 disabled:opacity-60">
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Simpan
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HALAMAN KANAL DONASI
+   ═══════════════════════════════════════════════════════════ */
+
+interface PaymentChannelItem {
+  id: string;
+  slug: string;
+  type: "bank_transfer" | "emoney" | "va";
+  label: string;
+  name: string;
+  reference: string;
+  holder: string | null;
+  note: string | null;
+  bankPrefix: string | null;
+  accent: string;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+}
+
+const CHANNEL_TYPE_LABELS: Record<PaymentChannelItem["type"], string> = {
+  bank_transfer: "Transfer Bank",
+  emoney: "E-money",
+  va: "Virtual Account",
+};
+
+const ACCENT_PRESETS = [
+  { value: "from-emerald-500/20 to-emerald-500/5", label: "Emerald", swatch: "bg-emerald-500" },
+  { value: "from-amber-500/20 to-amber-500/5", label: "Amber", swatch: "bg-amber-500" },
+  { value: "from-blue-500/20 to-blue-500/5", label: "Biru", swatch: "bg-blue-500" },
+  { value: "from-sky-500/20 to-sky-500/5", label: "Sky", swatch: "bg-sky-500" },
+  { value: "from-yellow-500/20 to-yellow-500/5", label: "Kuning", swatch: "bg-yellow-500" },
+  { value: "from-orange-500/20 to-orange-500/5", label: "Oranye", swatch: "bg-orange-500" },
+  { value: "from-purple-500/20 to-purple-500/5", label: "Ungu", swatch: "bg-purple-500" },
+];
+
+function PaymentChannelsPage() {
+  const [channels, setChannels] = useState<PaymentChannelItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<PaymentChannelItem | null>(null);
+
+  async function load() {
+    setLoading(true);
+    const res = await fetch("/api/admin/payment-channels");
+    const data = await res.json();
+    setChannels(data.channels || []);
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function del(id: string) {
+    if (!confirm("Hapus kanal donasi ini?")) return;
+    await fetch("/api/admin/payment-channels", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    await load();
+  }
+
+  async function toggleActive(id: string, current: boolean) {
+    await fetch("/api/admin/payment-channels", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, isActive: !current }),
+    });
+    await load();
+  }
+
+  return (
+    <div>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-2xl font-semibold">Kanal Donasi</h1>
+          <p className="mt-1 text-sm text-parchment-3">
+            {channels.length} kanal pembayaran (bank, e-money, VA) tercatat
+          </p>
+        </div>
+        <button
+          onClick={() => { setEditing(null); setShowForm(true); }}
+          className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-gold-2 via-gold to-gold-3 px-5 py-2.5 text-sm font-semibold text-ink transition hover:brightness-110"
+        >
+          <Plus className="h-4 w-4" /> Tambah Kanal
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-gold-2" />
+        </div>
+      ) : channels.length === 0 ? (
+        <div className="rounded-2xl border border-gold/15 py-16 text-center text-parchment-3">
+          Belum ada kanal donasi. Tambahkan rekening bank/e-wallet agar donatur bisa membayar.
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {channels.map((ch) => (
+            <div
+              key={ch.id}
+              className={`rounded-2xl border p-4 transition ${
+                ch.isActive ? "border-gold/15" : "border-gold/10 opacity-60"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-parchment-3">
+                    {CHANNEL_TYPE_LABELS[ch.type]}
+                  </p>
+                  <p className="mt-0.5 font-semibold text-parchment">
+                    {ch.bankPrefix || ch.name}
+                  </p>
+                </div>
+                {!ch.isActive && (
+                  <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] text-amber-300">
+                    Nonaktif
+                  </span>
+                )}
+              </div>
+              <p className="mt-2 break-all font-mono text-sm text-parchment-2">{ch.reference}</p>
+              {ch.holder && <p className="mt-0.5 text-xs text-parchment-3">a.n. {ch.holder}</p>}
+              <div className="mt-3 flex gap-1.5">
+                <button
+                  onClick={() => { setEditing(ch); setShowForm(true); }}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-gold/10 text-parchment-3 transition hover:bg-gold/15 hover:text-parchment"
+                >
+                  <Edit3 className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => toggleActive(ch.id, ch.isActive)}
+                  className={`flex h-8 w-8 items-center justify-center rounded-full transition ${
+                    ch.isActive
+                      ? "bg-gold/10 text-parchment-3 hover:bg-gold/15 hover:text-parchment"
+                      : "bg-amber-500/15 text-amber-300 hover:bg-amber-500/25"
+                  }`}
+                >
+                  {ch.isActive ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                </button>
+                <button
+                  onClick={() => del(ch.id)}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-red-500/10 text-red-300 transition hover:bg-red-500/20"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showForm && (
+        <PaymentChannelForm
+          channel={editing}
+          onClose={() => { setShowForm(false); setEditing(null); }}
+          onSaved={() => { setShowForm(false); setEditing(null); load(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function PaymentChannelForm({
+  channel,
+  onClose,
+  onSaved,
+}: {
+  channel: PaymentChannelItem | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [slug, setSlug] = useState(channel?.slug || "");
+  const [type, setType] = useState<PaymentChannelItem["type"]>(channel?.type || "bank_transfer");
+  const [label, setLabel] = useState(channel?.label || CHANNEL_TYPE_LABELS[channel?.type || "bank_transfer"]);
+  const [name, setName] = useState(channel?.name || "");
+  const [reference, setReference] = useState(channel?.reference || "");
+  const [holder, setHolder] = useState(channel?.holder || "");
+  const [note, setNote] = useState(channel?.note || "");
+  const [bankPrefix, setBankPrefix] = useState(channel?.bankPrefix || "");
+  const [accent, setAccent] = useState(channel?.accent || ACCENT_PRESETS[0].value);
+  const [sortOrder, setSortOrder] = useState(String(channel?.sortOrder || 0));
+  const [isActive, setIsActive] = useState(channel?.isActive ?? true);
+  const [busy, setBusy] = useState(false);
+
+  async function save() {
+    setBusy(true);
+    const method = channel ? "PATCH" : "POST";
+    await fetch("/api/admin/payment-channels", {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: channel?.id,
+        slug,
+        type,
+        label,
+        name,
+        reference,
+        holder: holder || null,
+        note: note || null,
+        bankPrefix: bankPrefix || null,
+        accent,
+        sortOrder: Number(sortOrder),
+        isActive,
+      }),
+    });
+    setBusy(false);
+    onSaved();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="glass w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl p-6 sm:p-8" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h3 className="font-display text-xl font-semibold">{channel ? "Edit Kanal" : "Tambah Kanal"}</h3>
+          <button onClick={onClose} className="rounded-full p-1.5 text-parchment-3 transition hover:bg-ink-2 hover:text-parchment">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="mt-6 space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs text-parchment-3">Tipe</label>
+              <FilterDropdown
+                value={type}
+                onChange={(v) => {
+                  const t = v as PaymentChannelItem["type"];
+                  setType(t);
+                  setLabel(CHANNEL_TYPE_LABELS[t]);
+                }}
+                icon={<CreditCard className="h-4 w-4" />}
+                options={[
+                  { value: "bank_transfer", label: "Transfer Bank", icon: <Landmark className="h-3.5 w-3.5" /> },
+                  { value: "emoney", label: "E-money", icon: <Smartphone className="h-3.5 w-3.5" /> },
+                  { value: "va", label: "Virtual Account", icon: <Banknote className="h-3.5 w-3.5" /> },
+                ]}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-parchment-3">Slug (id unik)</label>
+              <input
+                value={slug}
+                onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
+                placeholder="contoh: bsi"
+                className="w-full rounded-lg border border-gold/15 bg-ink-2 px-3 py-2.5 text-sm outline-none focus:border-gold/50"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-parchment-3">Nama Bank/E-wallet</label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="contoh: Bank Syariah Indonesia"
+              className="w-full rounded-lg border border-gold/15 bg-ink-2 px-3 py-2.5 text-sm outline-none focus:border-gold/50"
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs text-parchment-3">Label Singkat (badge)</label>
+              <input
+                value={bankPrefix}
+                onChange={(e) => setBankPrefix(e.target.value)}
+                placeholder="contoh: BSI"
+                className="w-full rounded-lg border border-gold/15 bg-ink-2 px-3 py-2.5 text-sm outline-none focus:border-gold/50"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-parchment-3">Nomor Rekening/HP/VA</label>
+              <input
+                value={reference}
+                onChange={(e) => setReference(e.target.value)}
+                placeholder="contoh: 1117230606"
+                className="w-full rounded-lg border border-gold/15 bg-ink-2 px-3 py-2.5 text-sm outline-none focus:border-gold/50"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-parchment-3">Atas Nama</label>
+            <input
+              value={holder}
+              onChange={(e) => setHolder(e.target.value)}
+              placeholder="contoh: Achmad Jafar Al Kadafi"
+              className="w-full rounded-lg border border-gold/15 bg-ink-2 px-3 py-2.5 text-sm outline-none focus:border-gold/50"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-parchment-3">Catatan (opsional)</label>
+            <input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="contoh: Hanya aktif pukul 00.30–21.30 WIB."
+              className="w-full rounded-lg border border-gold/15 bg-ink-2 px-3 py-2.5 text-sm outline-none focus:border-gold/50"
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs text-parchment-3">Warna Kartu</label>
+              <FilterDropdown
+                value={accent}
+                onChange={setAccent}
+                icon={
+                  <span
+                    className={`inline-block h-3 w-3 shrink-0 rounded-full ${ACCENT_PRESETS.find((a) => a.value === accent)?.swatch}`}
+                  />
+                }
+                options={ACCENT_PRESETS.map((a) => ({
+                  value: a.value,
+                  label: a.label,
+                  icon: <span className={`inline-block h-3 w-3 shrink-0 rounded-full ${a.swatch}`} />,
+                }))}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-parchment-3">Urutan</label>
+              <input
+                type="number"
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+                className="w-full rounded-lg border border-gold/15 bg-ink-2 px-3 py-2.5 text-sm outline-none focus:border-gold/50"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-parchment-3">Status</label>
+            <button
+              type="button"
+              onClick={() => setIsActive(!isActive)}
+              className={`w-full rounded-lg border px-3 py-2.5 text-sm font-medium transition ${
+                isActive
+                  ? "border-emerald-500/40 bg-emerald-js/15 text-emerald-300"
+                  : "border-amber-500/30 bg-amber-500/10 text-amber-300"
+              }`}
+            >
+              {isActive ? "Aktif" : "Nonaktif"}
+            </button>
+          </div>
+        </div>
+        <div className="mt-6 flex justify-end gap-2">
+          <button onClick={onClose} className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 px-4 py-2 text-sm text-parchment transition hover:bg-gold/10">
+            <X className="h-4 w-4" /> Batal
+          </button>
+          <button
+            onClick={save}
+            disabled={busy || !slug || !name || !reference}
+            className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-gold-2 via-gold to-gold-3 px-5 py-2 text-sm font-semibold text-ink transition hover:brightness-110 disabled:opacity-60"
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Simpan
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HALAMAN HARI PENTING HIJRIAH
+   ═══════════════════════════════════════════════════════════ */
+
+interface HijriEventItem {
+  id: string;
+  hijriDay: number;
+  hijriMonth: number;
+  title: string;
+  sortOrder: number;
+  createdAt: string;
+}
+
+const HIJRI_MONTH_NAMES = [
+  "Muharram", "Safar", "Rabi'ul Awal", "Rabi'ul Akhir",
+  "Jumadil Awal", "Jumadil Akhir", "Rajab", "Sya'ban",
+  "Ramadhan", "Syawal", "Dzulqa'dah", "Dzulhijjah",
+];
+
+function HijriEventsPage() {
+  const [events, setEvents] = useState<HijriEventItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<HijriEventItem | null>(null);
+
+  async function load() {
+    setLoading(true);
+    const res = await fetch("/api/admin/hijri-events");
+    const data = await res.json();
+    setEvents(data.events || []);
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function del(id: string) {
+    if (!confirm("Hapus tanggal penting ini?")) return;
+    await fetch("/api/admin/hijri-events", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    await load();
+  }
+
+  return (
+    <div>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-2xl font-semibold">Hari Penting Hijriah</h1>
+          <p className="mt-1 text-sm text-parchment-3">
+            {events.length} tanggal penting ditandai di Kalender Hijriah
+          </p>
+        </div>
+        <button
+          onClick={() => { setEditing(null); setShowForm(true); }}
+          className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-gold-2 via-gold to-gold-3 px-5 py-2.5 text-sm font-semibold text-ink transition hover:brightness-110"
+        >
+          <Plus className="h-4 w-4" /> Tambah Tanggal
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-gold-2" />
+        </div>
+      ) : events.length === 0 ? (
+        <div className="rounded-2xl border border-gold/15 py-16 text-center text-parchment-3">
+          Belum ada tanggal penting Hijriah yang ditandai.
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-gold/15">
+          <table className="w-full text-sm">
+            <thead className="bg-ink-2 text-left text-xs uppercase tracking-wide text-parchment-3">
+              <tr>
+                <th className="px-4 py-3">Tanggal Hijriah</th>
+                <th className="px-4 py-3">Nama Peristiwa</th>
+                <th className="px-4 py-3 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gold/10">
+              {events.map((ev) => (
+                <tr key={ev.id} className="transition hover:bg-ink-2/50">
+                  <td className="px-4 py-3 text-parchment-2">
+                    {ev.hijriDay} {HIJRI_MONTH_NAMES[ev.hijriMonth - 1]}
+                  </td>
+                  <td className="px-4 py-3 font-medium text-parchment">{ev.title}</td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex justify-end gap-1.5">
+                      <button
+                        onClick={() => { setEditing(ev); setShowForm(true); }}
+                        className="flex h-8 w-8 items-center justify-center rounded-full bg-gold/10 text-parchment-3 transition hover:bg-gold/15 hover:text-parchment"
+                      >
+                        <Edit3 className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => del(ev.id)}
+                        className="flex h-8 w-8 items-center justify-center rounded-full bg-red-500/10 text-red-300 transition hover:bg-red-500/20"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {showForm && (
+        <HijriEventForm
+          event={editing}
+          onClose={() => { setShowForm(false); setEditing(null); }}
+          onSaved={() => { setShowForm(false); setEditing(null); load(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function HijriEventForm({
+  event,
+  onClose,
+  onSaved,
+}: {
+  event: HijriEventItem | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [hijriDay, setHijriDay] = useState(String(event?.hijriDay || 1));
+  const [hijriMonth, setHijriMonth] = useState(String(event?.hijriMonth || 1));
+  const [title, setTitle] = useState(event?.title || "");
+  const [sortOrder, setSortOrder] = useState(String(event?.sortOrder || 0));
+  const [busy, setBusy] = useState(false);
+
+  async function save() {
+    setBusy(true);
+    const method = event ? "PATCH" : "POST";
+    await fetch("/api/admin/hijri-events", {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: event?.id,
+        hijriDay: Number(hijriDay),
+        hijriMonth: Number(hijriMonth),
+        title,
+        sortOrder: Number(sortOrder),
+      }),
+    });
+    setBusy(false);
+    onSaved();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="glass w-full max-w-md rounded-3xl p-6 sm:p-8" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h3 className="font-display text-xl font-semibold">{event ? "Edit Tanggal" : "Tambah Tanggal"}</h3>
+          <button onClick={onClose} className="rounded-full p-1.5 text-parchment-3 transition hover:bg-ink-2 hover:text-parchment">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="mt-6 space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs text-parchment-3">Tanggal (1-30)</label>
+              <input
+                type="number"
+                min={1}
+                max={30}
+                value={hijriDay}
+                onChange={(e) => setHijriDay(e.target.value)}
+                className="w-full rounded-lg border border-gold/15 bg-ink-2 px-3 py-2.5 text-sm outline-none focus:border-gold/50"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-parchment-3">Bulan Hijriah</label>
+              <FilterDropdown
+                value={hijriMonth}
+                onChange={setHijriMonth}
+                icon={<Moon className="h-4 w-4" />}
+                options={HIJRI_MONTH_NAMES.map((m, i) => ({ value: String(i + 1), label: m }))}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-parchment-3">Nama Peristiwa</label>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="contoh: Maulid Nabi"
+              className="w-full rounded-lg border border-gold/15 bg-ink-2 px-3 py-2.5 text-sm outline-none focus:border-gold/50"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-parchment-3">Urutan</label>
+            <input
+              type="number"
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              className="w-full rounded-lg border border-gold/15 bg-ink-2 px-3 py-2.5 text-sm outline-none focus:border-gold/50"
+            />
+          </div>
+        </div>
+        <div className="mt-6 flex justify-end gap-2">
+          <button onClick={onClose} className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 px-4 py-2 text-sm text-parchment transition hover:bg-gold/10">
+            <X className="h-4 w-4" /> Batal
+          </button>
+          <button
+            onClick={save}
+            disabled={busy || !title}
+            className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-gold-2 via-gold to-gold-3 px-5 py-2 text-sm font-semibold text-ink transition hover:brightness-110 disabled:opacity-60"
+          >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Simpan
           </button>

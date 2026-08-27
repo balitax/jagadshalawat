@@ -1,5 +1,5 @@
 import { saveReceipt } from "@/lib/upload";
-import { getChannel } from "@/lib/payment";
+import { getChannel } from "@/lib/payment-server";
 import { db } from "@/db";
 import { donations } from "@/db/schema";
 import { NextResponse } from "next/server";
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     const amount = Number(amountRaw);
     const method = methodRaw as "bank_transfer" | "emoney" | "va";
     const channelId = String(channelRaw);
-    const channel = getChannel(channelId);
+    const channel = await getChannel(channelId);
 
     if (!Number.isFinite(amount) || amount <= 0) {
       return NextResponse.json(

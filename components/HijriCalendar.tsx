@@ -80,18 +80,12 @@ function fmtGreg(d: Date) {
   return `${d.getDate()} ${GREG_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-const IMPORTANT_DATES: Record<string, string> = {
-  "1-1": "Tahun Baru Hijriah",
-  "3-12": "Maulid Nabi",
-  "9-1": "Isra Mi'raj",
-  "10-1": "Asyura",
-  "15-8": "Nisfu Sya'ban",
-  "1-9": "Awal Ramadhan",
-  "27-9": "Lailatul Qadr",
-  "1-10": "Idul Fitri",
-  "9-12": "Arafah",
-  "10-12": "Idul Adha",
-};
+interface HijriEventItem {
+  id: string;
+  hijriDay: number;
+  hijriMonth: number;
+  title: string;
+}
 
 interface ScheduleItem {
   id: string;
@@ -124,6 +118,7 @@ export function HijriCalendar({ isOpen, onClose }: HijriCalendarProps) {
   const [gregYear, setGregYear] = useState(now.getFullYear());
 
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
+  const [hijriEvents, setHijriEvents] = useState<HijriEventItem[]>([]);
   const [selected, setSelected] = useState<number | null>(null);
   const [tab, setTab] = useState<"calendar" | "events">("calendar");
 
@@ -133,9 +128,18 @@ export function HijriCalendar({ isOpen, onClose }: HijriCalendarProps) {
       .then(r => r.json())
       .then(d => setSchedules(d.schedules || []))
       .catch(() => {});
+    fetch("/api/hijri-events", { cache: "no-store" })
+      .then(r => r.json())
+      .then(d => setHijriEvents(d.events || []))
+      .catch(() => {});
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const IMPORTANT_DATES: Record<string, string> = {};
+  hijriEvents.forEach(ev => {
+    IMPORTANT_DATES[`${ev.hijriDay}-${ev.hijriMonth}`] = ev.title;
+  });
 
   // Schedule map by date string
   const scheduleMap = new Map<string, ScheduleItem[]>();

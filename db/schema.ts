@@ -157,3 +157,42 @@ export const wiridItems = pgTable("wirid_items", {
 
 export type WiridCategory = typeof wiridCategories.$inferSelect;
 export type WiridItem = typeof wiridItems.$inferSelect;
+
+/* ─── Payment Channels (Kanal Donasi: bank, e-money, VA) ─── */
+export const paymentChannels = pgTable("payment_channels", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  slug: text("slug").notNull().unique(),
+  type: text("type", {
+    enum: ["bank_transfer", "emoney", "va"],
+  }).notNull(),
+  label: text("label").notNull(),
+  name: text("name").notNull(),
+  reference: text("reference").notNull(),
+  holder: text("holder"),
+  note: text("note"),
+  bankPrefix: text("bank_prefix"),
+  accent: text("accent").notNull().default("from-gold-2/20 to-gold-2/5"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type PaymentChannelRow = typeof paymentChannels.$inferSelect;
+export type NewPaymentChannelRow = typeof paymentChannels.$inferInsert;
+
+/* ─── Hijri Events (Tanggal Penting Kalender Hijriah) ─── */
+export const hijriEvents = pgTable("hijri_events", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  hijriDay: integer("hijri_day").notNull(),
+  hijriMonth: integer("hijri_month").notNull(),
+  title: text("title").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type HijriEvent = typeof hijriEvents.$inferSelect;
+export type NewHijriEvent = typeof hijriEvents.$inferInsert;

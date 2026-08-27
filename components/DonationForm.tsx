@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import {
   Check,
   ChevronLeft,
@@ -16,7 +16,7 @@ import {
   Heart,
   Receipt,
 } from "lucide-react";
-import { CHANNELS, METHOD_LABELS, MethodType, getChannel } from "@/lib/payment";
+import { METHOD_LABELS, MethodType, PaymentChannel } from "@/lib/payment";
 import { formatRupiah } from "@/lib/format";
 import { SectionHeader } from "./SectionHeader";
 import { CornerBrackets } from "./CornerBrackets";
@@ -39,7 +39,9 @@ export function DonationForm() {
   const [step, setStep] = useState(0);
   const [amount, setAmount] = useState<number>(0);
   const [amountInput, setAmountInput] = useState("");
-  const [channelId, setChannelId] = useState("bsi");
+  const [channels, setChannels] = useState<PaymentChannel[]>([]);
+  const [channelsLoading, setChannelsLoading] = useState(true);
+  const [channelId, setChannelId] = useState("");
   const [name, setName] = useState("");
   const [anonymous, setAnonymous] = useState(false);
   const [message, setMessage] = useState("");
@@ -48,9 +50,37 @@ export function DonationForm() {
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [error, setError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
-  const channel = useMemo(() => getChannel(channelId), [channelId]);
 
-  const methods = Object.keys(CHANNELS) as MethodType[];
+  useEffect(() => {
+    fetch("/api/payment-channels")
+      .then((res) => res.json())
+      .then((data) => {
+        const list: PaymentChannel[] = data.channels || [];
+        setChannels(list);
+        if (list.length > 0) setChannelId(list[0].id);
+      })
+      .catch(() => {})
+      .finally(() => setChannelsLoading(false));
+  }, []);
+
+  const channel = useMemo(
+    () => channels.find((c) => c.id === channelId),
+    [channels, channelId]
+  );
+
+  const channelsByMethod = useMemo(() => {
+    const grouped: Record<MethodType, PaymentChannel[]> = {
+      bank_transfer: [],
+      emoney: [],
+      va: [],
+    };
+    for (const c of channels) grouped[c.type].push(c);
+    return grouped;
+  }, [channels]);
+
+  const methods = (Object.keys(channelsByMethod) as MethodType[]).filter(
+    (m) => channelsByMethod[m].length > 0
+  );
 
   function onPickAmount(value: number) {
     setAmount(value);
@@ -213,6 +243,9 @@ export function DonationForm() {
                 onBack={back}
                 onNext={next}
                 methods={methods}
+                channelsByMethod={channelsByMethod}
+                selectedChannel={channel}
+                loading={channelsLoading}
               />
             ) : (
               <KonfirmasiStep
@@ -341,6 +374,9 @@ function MetodeStep({
   onBack,
   onNext,
   methods,
+  channelsByMethod,
+  selectedChannel,
+  loading,
 }: {
   channelId: string;
   setChannelId: (id: string) => void;
@@ -348,8 +384,58 @@ function MetodeStep({
   onBack: () => void;
   onNext: () => void;
   methods: MethodType[];
+  channelsByMethod: Record<MethodType, PaymentChannel[]>;
+  selectedChannel: PaymentChannel | undefined;
+  loading: boolean;
 }) {
-  const channel = getChannel(channelId);
+  const channel = selectedChannel;
+
+  if (loading) {
+    return (
+      <StepBody
+        icon={Building2}
+        title="Pilih metode pembayaran"
+        subtitle="Memuat kanal pembayaran..."
+      >
+        <div className="mt-6 flex items-center justify-center py-10">
+          <Loader2 className="h-6 w-6 animate-spin text-gold-2" />
+        </div>
+        <div className="mt-7">
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex h-12 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-gold/20 px-5 text-sm font-medium text-parchment-2 transition hover:bg-gold/10 hover:text-gold-2"
+          >
+            <ChevronLeft className="h-4 w-4" /> Kembali
+          </button>
+        </div>
+      </StepBody>
+    );
+  }
+
+  if (methods.length === 0) {
+    return (
+      <StepBody
+        icon={Building2}
+        title="Pilih metode pembayaran"
+        subtitle="Belum ada kanal pembayaran yang tersedia."
+      >
+        <p className="mt-6 rounded-xl border border-gold/15 bg-ink-2 p-4 text-sm text-parchment-3">
+          Kanal donasi belum diatur oleh pengurus. Silakan coba lagi nanti.
+        </p>
+        <div className="mt-7">
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex h-12 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-gold/20 px-5 text-sm font-medium text-parchment-2 transition hover:bg-gold/10 hover:text-gold-2"
+          >
+            <ChevronLeft className="h-4 w-4" /> Kembali
+          </button>
+        </div>
+      </StepBody>
+    );
+  }
+
   return (
     <StepBody
       icon={Building2}
@@ -366,8 +452,8 @@ function MetodeStep({
                 <div className="mb-2.5 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-parchment-3">
                   <Icon className="h-4 w-4" /> {METHOD_LABELS[method]}
                 </div>
-                <div className={`grid gap-2.5 ${CHANNELS[method].length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
-                  {CHANNELS[method].map((ch) => {
+                <div className={`grid gap-2.5 ${channelsByMethod[method].length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
+                  {channelsByMethod[method].map((ch) => {
                     const active = ch.id === channelId;
                     return (
                       <button
