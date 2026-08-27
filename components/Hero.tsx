@@ -233,10 +233,9 @@ export function Hero() {
 
         {/* Description */}
         <p className="animate-fade-up delay-3 mt-7 max-w-2xl text-base leading-relaxed text-parchment-2 sm:text-lg lg:text-xl">
-          Kami adalah komunitas dzikir dan shalawat yang dengan penuh cinta
-          merawat keberkahan madrasah, mendampingi santri, dan menghidupkan
-          program kebaikan. Jadwal kegiatan, donasi, dan dokumentasi kami jaga
-          dengan transparan, agar setiap kebaikan dapat dipercaya bersama.
+          Kami adalah komunitas dzikir dan shalawat yang berkhidmat untuk
+          umat, menghidupkan kebaikan dengan penuh keikhlasan dan
+          transparansi.
         </p>
 
         {/* CTAs */}

@@ -28,8 +28,9 @@ export function Footer() {
               </div>
             </Link>
             <p className="mt-5 max-w-md text-sm leading-relaxed text-parchment-3">
-              Komunitas dzikir dan shalawat — menjaga amanah kas, menjalin ukhuwah,
-              dan mendukung madrasah santri lewat ketulusan setiap dermawan.
+              Kami adalah komunitas dzikir dan shalawat yang berkhidmat untuk
+              umat, menghidupkan kebaikan dengan penuh keikhlasan dan
+              transparansi.
             </p>
             <div className="mt-4 flex items-center gap-3">
               <span className="gold-line h-px w-8" />
