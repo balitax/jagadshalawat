@@ -48,6 +48,15 @@ function formatDisplayDate(dateStr: string) {
   }).format(d);
 }
 
+// Derive the effective status from the date so past events don't stay "upcoming".
+function getEffectiveStatus(item: ScheduleItem): ScheduleItem["status"] {
+  if (item.status === "cancelled") return "cancelled";
+  if (item.status === "completed") return "completed";
+  const dt = new Date(`${item.date}T${item.time || "00:00"}:00`);
+  if (!isNaN(dt.getTime()) && dt.getTime() < Date.now()) return "completed";
+  return "upcoming";
+}
+
 export function JadwalClient() {
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -139,7 +148,8 @@ export function JadwalClient() {
           <div ref={gridRef} className="reveal-stagger mx-auto mt-10 grid max-w-6xl gap-5 px-5 sm:grid-cols-2 lg:grid-cols-3">
             {paginated.map((s) => {
               const typeConfig = TYPE_CONFIG[s.type] || TYPE_CONFIG.sholawat;
-              const statusConfig = STATUS_CONFIG[s.status] || STATUS_CONFIG.upcoming;
+              const statusConfig =
+                STATUS_CONFIG[getEffectiveStatus(s)] || STATUS_CONFIG.upcoming;
               return (
                 <div key={s.id} className="glass card-lift group rounded-2xl p-6 transition">
                   <div className="flex flex-wrap items-center justify-between gap-2">

@@ -12,6 +12,7 @@ import {
   Heart,
 } from "lucide-react";
 import { formatDate, formatRupiah } from "@/lib/format";
+import { sanitizeHtml } from "@/lib/sanitizeHtml";
 
 interface Article {
   id: string;
@@ -145,11 +146,23 @@ export function ArticleDetailClient({ article }: { article: Article }) {
           <div className="gold-line mx-auto mt-8 h-px w-16" />
 
           <div className="mt-8 max-w-none">
-            {article.content.split("\n").map((paragraph, i) => (
-              <p key={i} className="mb-4 text-sm leading-relaxed text-parchment-2">
-                {paragraph}
-              </p>
-            ))}
+            {article.content.includes("<") ? (
+              <div
+                className="article-content"
+                dangerouslySetInnerHTML={{
+                  __html: sanitizeHtml(article.content),
+                }}
+              />
+            ) : (
+              article.content.split("\n").map((paragraph, i) => (
+                <p
+                  key={i}
+                  className="mb-4 text-sm leading-relaxed text-parchment-2"
+                >
+                  {paragraph}
+                </p>
+              ))
+            )}
           </div>
 
           <div className="mt-12 border-t border-gold/10 pt-8">
