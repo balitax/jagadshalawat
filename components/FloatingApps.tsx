@@ -7,6 +7,7 @@ import {
   PrayerIcon,
   CalculatorIcon,
   QuranIcon,
+  KitabIcon,
   DuaIcon,
   CalendarIcon,
 } from "@/components/FloatingAppButton";
@@ -46,6 +47,12 @@ export function FloatingApps() {
           label="Alquran"
           color="emerald"
           onClick={() => router.push("/quran")}
+        />
+        <FloatingAppButton
+          icon={<KitabIcon className="h-5 w-5 sm:h-6 sm:w-6" />}
+          label="Kitab Kuning"
+          color="gold"
+          onClick={() => router.push("/kitab")}
         />
 
         <FloatingAppButton

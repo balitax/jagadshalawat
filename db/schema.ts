@@ -216,3 +216,56 @@ export const hijriEvents = pgTable("hijri_events", {
 
 export type HijriEvent = typeof hijriEvents.$inferSelect;
 export type NewHijriEvent = typeof hijriEvents.$inferInsert;
+
+/* ─── Kitab Kuning (sumber: api.ahmadsanusi.com) ─── */
+export const kitabCategories = pgTable("kitab_categories", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull().unique(),
+  slug: text("slug").notNull().unique(),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
+export const kitab = pgTable("kitab", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  slug: text("slug").notNull().unique(),
+  nama: text("nama").notNull(),
+  namaArab: text("nama_arab"),
+  pengarang: text("pengarang"),
+  pengarangArab: text("pengarang_arab"),
+  tahunLahir: text("tahun_lahir"),
+  tahunWafat: text("tahun_wafat"),
+  mazhab: text("mazhab"),
+  kategori: text("kategori"),
+  categoryId: uuid("category_id").references(() => kitabCategories.id),
+  bahasa: text("bahasa"),
+  fitur: text("fitur"),
+  deskripsi: text("deskripsi"),
+  catatan: text("catatan"),
+  totalBab: integer("total_bab").notNull().default(0),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const kitabBab = pgTable("kitab_bab", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  kitabId: uuid("kitab_id")
+    .notNull()
+    .references(() => kitab.id, { onDelete: "cascade" }),
+  nomor: integer("nomor").notNull().default(0),
+  judul: text("judul"),
+  judulArab: text("judul_arab"),
+  bagian: text("bagian"),
+  keterangan: text("keterangan"),
+  file: text("file"),
+  sectionId: text("section_id"),
+  teksArab: text("teks_arab"),
+  teksIndonesia: text("teks_indonesia"),
+  urutan: integer("urutan").notNull().default(0),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
+export type KitabCategory = typeof kitabCategories.$inferSelect;
+export type Kitab = typeof kitab.$inferSelect;
+export type KitabBab = typeof kitabBab.$inferSelect;

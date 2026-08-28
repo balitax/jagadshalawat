@@ -156,6 +156,18 @@ export function DuaIcon({ className = "h-6 w-6" }: { className?: string }) {
   );
 }
 
+export function KitabIcon({ className = "h-6 w-6" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className={className}>
+      {/* Open book */}
+      <path d="M12 5c-2-1.5-5-1.5-7 0v13c2-1.5 5-1.5 7 0 2-1.5 5-1.5 7 0V5c-2-1.5-5-1.5-7 0z" strokeLinejoin="round" />
+      <path d="M12 5v13" />
+      {/* Text lines */}
+      <path d="M8.5 9h0M9.5 9h0M8.5 12h0M9.5 12h0M14.5 9h0M15.5 9h0M14.5 12h0M15.5 12h0" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function CalendarIcon({ className = "h-6 w-6" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className={className}>

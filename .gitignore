@@ -44,3 +44,5 @@ next-env.d.ts
 /uploads
 
 certificates
+# generated migration data (kitab fetch output)
+kitab-data.json

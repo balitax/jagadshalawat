@@ -45,6 +45,7 @@ npm run dev          # http://localhost:3000
 
 - Halaman publik: `/`
 - Panel pengurus: `/admin`
+- Kitab Kuning: `/kitab` (dan `/kitab/[slug]`)
 
 ### Info Login Admin
 
@@ -76,6 +77,35 @@ npm run dev          # http://localhost:3000
 | `npm run lint`      | ESLint                              |
 | `npm run db:push`   | Push skema Drizzle ke database      |
 | `npm run db:generate` | Generate file migrasi             |
+| `npm run kitab:fetch` | Ambil data Kitab Kuning → `kitab-data.json` |
+| `npm run db:seed-kitab` | Seed data Kitab Kuning ke database |
+
+## Data Kitab Kuning (api.ahmadsanusi.com)
+
+Data kitab diambil dari API eksternal [api.ahmadsanusi.com](https://api.ahmadsanusi.com) (butuh `X-API-Key`). Alur: **fetch → migrasi data (`kitab-data.json`) → seed ke database**.
+
+1. Siapkan API key di `.env` (lihat `.env.example`):
+
+   ```
+   AHMAD_SANUSI_API_KEY=ask_xxxxxxxxxxxx
+   ```
+
+2. Ambil & kelompokkan data ke file migrasi `kitab-data.json`:
+
+   ```bash
+   npm run kitab:fetch
+   ```
+
+   Script menyimpan progres per-kitab, sehingga aman dijalankan bertahap apabila
+   terkena rate-limit (akun gratis ≈ 100 request/hari; total ~964 bab).
+
+3. Seed ke database:
+
+   ```bash
+   npm run db:seed-kitab
+   ```
+
+   Tabel yang digunakan: `kitab_categories`, `kitab`, `kitab_bab`.
 
 ## Catatan
 
